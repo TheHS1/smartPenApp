@@ -34,8 +34,13 @@ export default function Main() {
         setIsModalVisible(true);
     }
 
-    const [paths, setPaths] = useState<string[][]>([])
-    const [curDrawn, setCurDrawn] = useState<string[]>([]);
+    interface pathInfo {
+        path: string[];
+        erase: boolean;
+    }
+
+    const [paths, setPaths] = useState<pathInfo[]>([])
+    const [curDrawn, setCurDrawn] = useState<pathInfo>({path: [], erase: false});
     const [drawing, setDrawing] = useState<boolean>(false);
     const paintRef = useRef(null);
 
@@ -57,18 +62,18 @@ export default function Main() {
         }
 
         if (draw) {
-            const curPath = [...curDrawn];
+            const curPath = [...curDrawn.path];
 
             // Due to SVG format, make sure that points are in MX,Y format
             const point = `${curPath.length === 0 ? 'M' : ""}${x.toFixed(0)},${y.toFixed(0)}`;
             curPath.push(point)
-            setCurDrawn(curPath)
+            setCurDrawn({...curDrawn, path: curPath})
         }
     };
 
     const savePath = () => {
         paths.push(curDrawn)
-        setCurDrawn([]);
+        setCurDrawn({...curDrawn, path: []});
     };
     
     const setDraw = () => {
@@ -77,37 +82,47 @@ export default function Main() {
 
     const unsetDraw = () => {
         paths.push(curDrawn)
-        setCurDrawn([]);
+        setCurDrawn({path: [], erase: false});
         setDrawing(false)
     }
 
     return (
-      <SafeAreaView className="flex h-full w-full">
+      <SafeAreaView className="h-full w-full">
         {connectedDevice ? (
-        <View ref={paintRef} onTouchMove={updatePath} onTouchEnd={savePath} onPointerMove={updatePath} onPointerDown={setDraw} onPointerUp={unsetDraw} className="border-blue-500 border-4 w-full h-1/2">
-            <Svg className="h-full">
-            <Path
-                d={curDrawn.join('\n')}
-                stroke='red'
-                fill={'transparent'}
-                strokeWidth={3}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-            />
-            {paths.map((path: string[], index: number) => (
-                <Path
-                    key={index}
-                    d={path.join(' ')}
-                    stroke='red'
-                    fill={'transparent'}
-                    strokeWidth={3}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                />
-            ))}
-            </Svg>
-            <Text>{data}</Text>
-        
+        <View className="flex border-blue-500 border-4 w-full h-1/2">
+            <View className="flex-initial flex flex-row p-2">
+                <TouchableOpacity onPress={() => setCurDrawn({...curDrawn, erase:false})} className="flex-1">
+                    <Text>draw</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => setCurDrawn({...curDrawn, erase:true})}className="flex-1">
+                    <Text>erase</Text>
+                </TouchableOpacity>
+            </View>
+            <View ref={paintRef} onTouchMove={updatePath} onTouchEnd={savePath} onPointerMove={updatePath} onPointerDown={setDraw} onPointerUp={unsetDraw} className="flex-1">
+                <Svg className="h-full">
+                    {paths.map((path: pathInfo, index: number) => (
+                        <Path
+                            key={index}
+                            d={path.path.join(' ')}
+                            stroke={path.erase ? 'white' : 'red'}
+                            fill={'transparent'}
+                            strokeWidth={3}
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                        />
+                    ))}
+                    <Path
+                        d={curDrawn.path.join('\n')}
+                        stroke={curDrawn.erase ? 'white' : 'red'}
+                        fill={'transparent'}
+                        strokeWidth={3}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                    />
+                </Svg>
+            </View>
+            <Text className="flex-initial">{data}</Text>
         </View>
         ) : (
         <View>
