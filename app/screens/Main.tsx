@@ -90,6 +90,11 @@ export default function Main() {
         setDrawing(false)
     }
 
+    const clearPath = () => {
+        setPaths([])
+        setCurDrawn({path: [], erase: false})
+    }
+
     return (
       <SafeAreaView className="h-full w-full">
 
@@ -102,6 +107,9 @@ export default function Main() {
 
                 <TouchableOpacity onPress={() => setCurDrawn({...curDrawn, erase:true})}className="flex-1">
                     <Text>erase</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={clearPath}className="flex-1">
+                    <Text>clear</Text>
                 </TouchableOpacity>
             </View>
             <View ref={paintRef} onTouchMove={updatePath} onTouchEnd={savePath} onPointerMove={updatePath} onPointerDown={setDraw} onPointerUp={unsetDraw} className="flex-1">
