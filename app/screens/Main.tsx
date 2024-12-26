@@ -94,14 +94,17 @@ export default function Main() {
                 strokeLinejoin="round"
                 strokeLinecap="round"
             />
-            <Path
-                d={paths.join(' ')}
-                stroke='red'
-                fill={'transparent'}
-                strokeWidth={3}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-            />
+            {paths.map((path: string[], index: number) => (
+                <Path
+                    key={index}
+                    d={path.join(' ')}
+                    stroke='red'
+                    fill={'transparent'}
+                    strokeWidth={3}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                />
+            ))}
             </Svg>
             <Text>{data}</Text>
         
