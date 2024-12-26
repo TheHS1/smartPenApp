@@ -39,15 +39,34 @@ export default function Main() {
         erase: boolean;
     }
 
-    const [paths, setPaths] = useState<pathInfo[]>([])
+    enum actions {
+        addPath,
+        deletePath,
+        clear
+    }
+
+    interface history {
+        action: actions;
+        paths?: pathInfo[];
+    }
+
+    const [paths, setPaths] = useState<pathInfo[]>([]);
     const [curDrawn, setCurDrawn] = useState<pathInfo>({path: [], erase: false});
     const [drawing, setDrawing] = useState<boolean>(false);
     const [showAnnotation, setShowAnnotation] = useState<boolean>(true);
+    const [hist, setHist] = useState<history[]>([]);
+    const [redoHist, setRedoHist] = useState<history[]>([]);
     const paintRef = useRef(null);
+
 
     const updatePath = (event: GestureResponderEvent | PointerEvent) => {
         if(!showAnnotation)
             return
+
+        // Redo is reset if a change is made
+        if(redoHist.length > 0) {
+            setRedoHist([])
+        }
 
         // get location of finger press or mouse move
         if((event as GestureResponderEvent).nativeEvent.locationX) {
@@ -77,6 +96,7 @@ export default function Main() {
 
     const savePath = () => {
         paths.push(curDrawn)
+        hist.push({action: actions.addPath})
         setCurDrawn({...curDrawn, path: []});
     };
     
@@ -91,8 +111,49 @@ export default function Main() {
     }
 
     const clearPath = () => {
+        hist.push({action: actions.clear, paths: paths.slice()})
         setPaths([])
         setCurDrawn({path: [], erase: false})
+    }
+
+    const undoDraw = () => {
+        const last = hist.pop()
+        if (last === undefined)
+            return
+
+        switch(last.action) {
+            case actions.addPath:
+                const path = paths.pop();
+                if (path === undefined)
+                    return
+                redoHist.push({action: actions.deletePath, paths: [path]})
+                break;
+            case actions.clear:
+                if(!last.paths) 
+                    return;
+                redoHist.push({action: actions.clear});
+                setPaths(last.paths.slice());
+                break;
+        }
+    }
+
+    const redoDraw = () => {
+        const first = redoHist.pop()
+        if (first === undefined)
+            return
+
+        switch(first.action) {
+            case actions.deletePath:
+                if(first.paths === undefined)
+                    return
+                paths.push(first.paths[0])
+                hist.push({action: actions.addPath})
+                break;
+            case actions.clear:
+                hist.push({action: actions.clear, paths: paths.slice()})
+                setPaths([])
+                break;
+        }
     }
 
     return (
@@ -110,6 +171,12 @@ export default function Main() {
                 </TouchableOpacity>
                 <TouchableOpacity onPress={clearPath}className="flex-1">
                     <Text>clear</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={undoDraw}className="flex-1">
+                    <Text>Undo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={redoDraw}className="flex-1">
+                    <Text>Redo</Text>
                 </TouchableOpacity>
             </View>
             <View ref={paintRef} onTouchMove={updatePath} onTouchEnd={savePath} onPointerMove={updatePath} onPointerDown={setDraw} onPointerUp={unsetDraw} className="flex-1">
