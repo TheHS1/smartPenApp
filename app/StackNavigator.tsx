@@ -7,7 +7,11 @@ const Stack = createNativeStackNavigator();
 
 export default function StackNavigator() {
   return (
-      <Stack.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+            contentStyle: {backgroundColor: '#fff'}
+        }}
+      >
           <Stack.Screen name="Login" component={Login}/>
           <Stack.Screen name="Main" component={Main}/>
           <Stack.Screen name="Profile" component={Profile}/>
