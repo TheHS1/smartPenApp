@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Svg, Path } from 'react-native-svg'
-
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 export default function Annotations() {
     interface pathInfo {
@@ -124,24 +124,28 @@ export default function Annotations() {
                 break;
         }
     }
+
     return (
         <View className="flex-1 flex border-blue-500 border-4 w-full h-full">
-            <View className="flex-initial flex flex-row p-2">
-                <TouchableOpacity onPress={() => setCurDrawn({...curDrawn, erase:false})} className="flex-1">
-                    <Text>draw</Text>
+            <View className="flex-initial flex flex-row p-2 items-end">
+                <TouchableOpacity onPress={() => setCurDrawn({...curDrawn, erase:false})} className="flex-1 items-center">
+                    <Ionicons name="brush" size={32} color={curDrawn.erase ? "black" : "blue"}/>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => setCurDrawn({...curDrawn, erase:true})}className="flex-1">
-                    <Text>erase</Text>
+                <TouchableOpacity onPress={() => setCurDrawn({...curDrawn, erase:true})} className="flex-1 items-center">
+                    <Ionicons name="beaker-sharp" size={32} color={curDrawn.erase ? "blue" : "black"} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={clearPath}className="flex-1">
-                    <Text>clear</Text>
+                <TouchableOpacity onPress={undoDraw} className="flex-1 items-center">
+                    <Ionicons name="arrow-undo" size={32} color="black" />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={undoDraw}className="flex-1">
-                    <Text>Undo</Text>
+                <TouchableOpacity onPress={redoDraw} className="flex-1 items-center">
+                    <Ionicons name="arrow-redo" size={32} color="black" />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={redoDraw}className="flex-1">
-                    <Text>Redo</Text>
+                <TouchableOpacity onPress={clearPath} className="flex-1 items-center">
+                    <Ionicons name="trash" size={32} color="black" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowAnnotation(!showAnnotation)} className="flex-1 items-center">
+                    <Ionicons name={showAnnotation ? "eye" : "eye-off"} size={32} color="black" />
                 </TouchableOpacity>
             </View>
             <View ref={paintRef} onTouchMove={updatePath} onTouchEnd={savePath} onPointerMove={updatePath} onPointerDown={setDraw} onPointerUp={unsetDraw} className="flex-1">
@@ -180,7 +184,6 @@ export default function Annotations() {
                         />
                     </Svg>
             </View>
-            <TouchableOpacity onPress={() => setShowAnnotation(!showAnnotation)}className="flex-initial"><Text>Toggle annotations</Text></TouchableOpacity>
         </View>
     )
 }
