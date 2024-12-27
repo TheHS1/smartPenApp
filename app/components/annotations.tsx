@@ -22,13 +22,12 @@ export default function Annotations() {
 
     const [paths, setPaths] = useState<pathInfo[]>([]);
     const [curDrawn, setCurDrawn] = useState<pathInfo>({path: [], erase: false});
-    const [drawing, setDrawing] = useState<boolean>(false);
     const [showAnnotation, setShowAnnotation] = useState<boolean>(true);
     const [hist, setHist] = useState<history[]>([]);
     const [redoHist, setRedoHist] = useState<history[]>([]);
     const paintRef = useRef(null);
 
-    const updatePath = (event: GestureResponderEvent | PointerEvent) => {
+    const updatePath = (event: GestureResponderEvent) => {
         if(!showAnnotation)
             return
 
@@ -37,30 +36,16 @@ export default function Annotations() {
             setRedoHist([])
         }
 
-        // get location of finger press or mouse move
-        if((event as GestureResponderEvent).nativeEvent.locationX) {
-            var x = (event as GestureResponderEvent).nativeEvent.locationX;
-            var draw = true
-        } else {
-            var rect = paintRef.current.getBoundingClientRect();
-            var x = (event as PointerEvent).clientX - rect.left;
-            var draw = drawing
-        }
+        // get location of finger press
+        const x = (event as GestureResponderEvent).nativeEvent.locationX;
+        const y = (event as GestureResponderEvent).nativeEvent.locationY;
 
-        if((event as GestureResponderEvent).nativeEvent.locationY) {
-            var y = (event as GestureResponderEvent).nativeEvent.locationY;
-        } else {
-            var y = (event as PointerEvent).clientY - rect.top;
-        }
+        const curPath = [...curDrawn.path];
 
-        if (draw) {
-            const curPath = [...curDrawn.path];
-
-            // Due to SVG format, make sure that points are in MX,Y format
-            const point = `${curPath.length === 0 ? 'M' : ""}${x.toFixed(0)},${y.toFixed(0)}`;
-            curPath.push(point)
-            setCurDrawn({...curDrawn, path: curPath})
-        }
+        // Due to SVG format, make sure that points are in MX,Y format
+        const point = `${curPath.length === 0 ? 'M' : ""}${x.toFixed(0)},${y.toFixed(0)}`;
+        curPath.push(point)
+        setCurDrawn({...curDrawn, path: curPath})
     };
 
     const savePath = () => {
@@ -68,16 +53,6 @@ export default function Annotations() {
         hist.push({action: actions.addPath})
         setCurDrawn({...curDrawn, path: []});
     };
-
-    const setDraw = () => {
-        setDrawing(true)
-    }
-
-    const unsetDraw = () => {
-        paths.push(curDrawn)
-        setCurDrawn({path: [], erase: false});
-        setDrawing(false)
-    }
 
     const clearPath = () => {
         hist.push({action: actions.clear, paths: paths.slice()})
@@ -148,7 +123,7 @@ export default function Annotations() {
                     <Ionicons name={showAnnotation ? "eye" : "eye-off"} size={32} color="black" />
                 </TouchableOpacity>
             </View>
-            <View ref={paintRef} onTouchMove={updatePath} onTouchEnd={savePath} onPointerMove={updatePath} onPointerDown={setDraw} onPointerUp={unsetDraw} className="flex-1">
+            <View ref={paintRef} onTouchMove={updatePath} onTouchEnd={savePath} className="flex-1">
                 { showAnnotation && (
                     <Svg className="absolute">
                         {paths.map((path: pathInfo, index: number) => (
