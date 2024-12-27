@@ -1,12 +1,20 @@
 import { useState, useRef } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, GestureResponderEvent, Modal, SafeAreaView } from "react-native";
 import { Svg, Path } from 'react-native-svg'
 import Ionicons from '@expo/vector-icons/Ionicons';
+import ColorPicker, { Panel1, Swatches, Preview, OpacitySlider, HueSlider, returnedResults } from 'reanimated-color-picker';
+import Animated, { ReanimatedLogLevel, configureReanimatedLogger, useSharedValue } from "react-native-reanimated";
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false, // Reanimated runs in strict mode by default
+});
 
 export default function Annotations() {
   interface pathInfo {
     path: string[];
     erase: boolean;
+    color: string;
   }
 
   enum actions {
@@ -21,10 +29,14 @@ export default function Annotations() {
   }
 
   const [paths, setPaths] = useState<pathInfo[]>([]);
-  const [curDrawn, setCurDrawn] = useState<pathInfo>({ path: [], erase: false });
+  const selectedColor = useSharedValue('red');
+
+  const [curDrawn, setCurDrawn] = useState<pathInfo>({ path: [], erase: false, color: 'red' });
   const [showAnnotation, setShowAnnotation] = useState<boolean>(true);
   const [hist, setHist] = useState<history[]>([]);
   const [redoHist, setRedoHist] = useState<history[]>([]);
+
+  const [showPicker, setShowPicker] = useState<boolean>(false);
   const paintRef = useRef(null);
 
   const updatePath = (event: GestureResponderEvent) => {
@@ -37,8 +49,8 @@ export default function Annotations() {
     }
 
     // get location of finger press
-    const x = (event as GestureResponderEvent).nativeEvent.locationX;
-    const y = (event as GestureResponderEvent).nativeEvent.locationY;
+    const x = event.nativeEvent.locationX;
+    const y = event.nativeEvent.locationY;
 
     const curPath = [...curDrawn.path];
 
@@ -49,6 +61,7 @@ export default function Annotations() {
   };
 
   const savePath = () => {
+    curDrawn.color = selectedColor.value;
     paths.push(curDrawn)
     hist.push({ action: actions.addPath })
     setCurDrawn({ ...curDrawn, path: [] });
@@ -57,7 +70,7 @@ export default function Annotations() {
   const clearPath = () => {
     hist.push({ action: actions.clear, paths: paths.slice() })
     setPaths([])
-    setCurDrawn({ path: [], erase: false })
+    setCurDrawn({ path: [], erase: false, color: curDrawn.color })
   }
 
   const undoDraw = () => {
@@ -100,9 +113,16 @@ export default function Annotations() {
     }
   }
 
+  const onSelectColor = (color: returnedResults) => {
+    selectedColor.value = color.rgb
+  };
+
   return (
     <View className="flex-1 flex border-blue-500 border-4 w-full h-full">
       <View className="flex-initial flex flex-row p-2 items-end">
+        <TouchableOpacity onPress={() => setShowPicker(!showPicker)} className="flex-1 items-center">
+          <Ionicons name="color-palette" size={32} color="black" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => setCurDrawn({ ...curDrawn, erase: false })} className="flex-1 items-center">
           <Ionicons name="brush" size={32} color={curDrawn.erase ? "black" : "blue"} />
         </TouchableOpacity>
@@ -130,7 +150,7 @@ export default function Annotations() {
               <Path
                 key={index}
                 d={path.path.join(' ')}
-                stroke={path.erase ? 'white' : 'red'}
+                stroke={path.erase ? 'white' : path.color}
                 fill={'transparent'}
                 strokeWidth={3}
                 strokeLinejoin="round"
@@ -139,7 +159,7 @@ export default function Annotations() {
             ))}
             <Path
               d={curDrawn.path.join('\n')}
-              stroke={curDrawn.erase ? 'white' : 'red'}
+              stroke={curDrawn.erase ? 'white' : selectedColor.value}
               fill={'transparent'}
               strokeWidth={3}
               strokeLinejoin="round"
@@ -159,6 +179,24 @@ export default function Annotations() {
           />
         </Svg>
       </View>
-    </View>
+      <Modal className="flex items-center w-full" visible={showPicker} animationType='slide' transparent={true}>
+        <SafeAreaView>
+          <View className="flex items-center">
+            <View className="bg-gray-50 w-2/3 p-3">
+              <ColorPicker value='red' onComplete={onSelectColor}>
+                <Preview />
+                <Panel1 />
+                <HueSlider />
+                <OpacitySlider />
+                <Swatches />
+              </ColorPicker>
+              <TouchableOpacity className="bg-black opacity-40 items-center p-2" onPress={() => setShowPicker(false)}>
+                <Text className="text-white">Select</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal >
+    </View >
   )
 }
