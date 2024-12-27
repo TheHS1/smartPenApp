@@ -1,66 +1,66 @@
 import { useState, useRef } from "react";
-import { TouchableOpacity, View, Text} from "react-native";
+import { TouchableOpacity, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import useBLE from '../useBLE'
 import DeviceModal from "./DeviceConnectionModal";
 import Annotations from "../components/annotations";
 
 export default function Main() {
-    const {
-        requestPermissions,
-        scanForPeripherals,
-        allDevices,
-        connectToDevice,
-        connectedDevice,
-        data,
-        disconnectFromDevice
-    } = useBLE();
-    const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const {
+    requestPermissions,
+    scanForPeripherals,
+    allDevices,
+    connectToDevice,
+    connectedDevice,
+    data,
+    disconnectFromDevice
+  } = useBLE();
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
-    const scanForDevices = async () => {
-        const isPermissionsEnabled = await requestPermissions();
-        if (isPermissionsEnabled) {
-            scanForPeripherals();
-        }
+  const scanForDevices = async () => {
+    const isPermissionsEnabled = await requestPermissions();
+    if (isPermissionsEnabled) {
+      scanForPeripherals();
     }
+  }
 
-    const hideModal = () => {
-        setIsModalVisible(false);
-    }
+  const hideModal = () => {
+    setIsModalVisible(false);
+  }
 
-    const openModal = async () => {
-        scanForDevices();
-        setIsModalVisible(true);
-    }
+  const openModal = async () => {
+    scanForDevices();
+    setIsModalVisible(true);
+  }
 
 
-    return (
-      <SafeAreaView className="h-full w-full">
+  return (
+    <SafeAreaView className="h-full w-full">
 
-        {connectedDevice ? (
+      {connectedDevice ? (
         <View className="flex w-full h-full">
-            <Annotations/>
-            <Text className="flex-initial">{data}</Text>
+          <Annotations />
+          <Text className="flex-initial">{data}</Text>
         </View>
-        ) : (
+      ) : (
         <View>
-            <Text className="text-center text-lg">Please connect your smart pen device</Text>
-            <TouchableOpacity
-                onPress={openModal}
-            >
-                <Text className="text-center bg-blue-500 p-5 m-10 text-white">
-                    Connect
-                </Text>
-                <DeviceModal
-                    closeModal={hideModal}
-                    visible={isModalVisible}
-                    connectToPeripheral={connectToDevice}
-                    devices={allDevices}
-                />
-            </TouchableOpacity>
+          <Text className="text-center text-lg">Please connect your smart pen device</Text>
+          <TouchableOpacity
+            onPress={openModal}
+          >
+            <Text className="text-center bg-blue-500 p-5 m-10 text-white">
+              Connect
+            </Text>
+            <DeviceModal
+              closeModal={hideModal}
+              visible={isModalVisible}
+              connectToPeripheral={connectToDevice}
+              devices={allDevices}
+            />
+          </TouchableOpacity>
         </View>
-        )}
-      </SafeAreaView>
-    )
+      )}
+    </SafeAreaView>
+  )
 }
 

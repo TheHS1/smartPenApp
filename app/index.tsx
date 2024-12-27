@@ -8,10 +8,10 @@ NativeWindStyleSheet.setOutput({
 
 export default function Index() {
   return (
-      <NavigationIndependentTree>
-          <NavigationContainer>
-              <StackNavigator />
-          </NavigationContainer>
-      </NavigationIndependentTree>
+    <NavigationIndependentTree>
+      <NavigationContainer>
+        <StackNavigator />
+      </NavigationContainer>
+    </NavigationIndependentTree>
   );
 }
