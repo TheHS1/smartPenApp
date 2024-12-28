@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { View, Text, TouchableOpacity, GestureResponderEvent, Modal, SafeAreaView } from "react-native";
-import { Svg, Path } from 'react-native-svg'
+import { Svg, Path, SvgAst, Circle } from 'react-native-svg'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import ColorPicker, { Panel1, Swatches, Preview, OpacitySlider, HueSlider, returnedResults } from 'reanimated-color-picker';
 import Animated, { ReanimatedLogLevel, configureReanimatedLogger, useSharedValue } from "react-native-reanimated";
@@ -15,6 +15,7 @@ export default function Annotations() {
     path: string[];
     erase: boolean;
     color: string;
+    strokeSize: number;
   }
 
   enum actions {
@@ -31,13 +32,13 @@ export default function Annotations() {
   const [paths, setPaths] = useState<pathInfo[]>([]);
   const selectedColor = useSharedValue('red');
 
-  const [curDrawn, setCurDrawn] = useState<pathInfo>({ path: [], erase: false, color: 'red' });
+  const [curDrawn, setCurDrawn] = useState<pathInfo>({ path: [], erase: false, color: 'red', strokeSize: 1 });
   const [showAnnotation, setShowAnnotation] = useState<boolean>(true);
   const [hist, setHist] = useState<history[]>([]);
   const [redoHist, setRedoHist] = useState<history[]>([]);
 
   const [showPicker, setShowPicker] = useState<boolean>(false);
-  const paintRef = useRef(null);
+  const maxStroke = 7;
 
   const updatePath = (event: GestureResponderEvent) => {
     if (!showAnnotation)
@@ -61,7 +62,6 @@ export default function Annotations() {
   };
 
   const savePath = () => {
-    curDrawn.color = selectedColor.value;
     paths.push(curDrawn)
     hist.push({ action: actions.addPath })
     setCurDrawn({ ...curDrawn, path: [] });
@@ -70,7 +70,7 @@ export default function Annotations() {
   const clearPath = () => {
     hist.push({ action: actions.clear, paths: paths.slice() })
     setPaths([])
-    setCurDrawn({ path: [], erase: false, color: curDrawn.color })
+    setCurDrawn({ ...curDrawn, path: [], erase: false })
   }
 
   const undoDraw = () => {
@@ -114,14 +114,29 @@ export default function Annotations() {
   }
 
   const onSelectColor = (color: returnedResults) => {
-    selectedColor.value = color.rgb
+    selectedColor.value = color.rgb;
   };
+
+  const confirmColor = () => {
+    curDrawn.color = selectedColor.value;
+    setShowPicker(false)
+  }
+
+  const setStroke = () => {
+    const size = Math.max((curDrawn.strokeSize + 2) % maxStroke, 1);
+    setCurDrawn({ ...curDrawn, strokeSize: size });
+  }
 
   return (
     <View className="flex-1 flex border-blue-500 border-4 w-full h-full">
       <View className="flex-initial flex flex-row p-2 items-end">
         <TouchableOpacity onPress={() => setShowPicker(!showPicker)} className="flex-1 items-center">
           <Ionicons name="color-palette" size={32} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={setStroke} className="flex-1 items-center">
+          <Svg className="flex-1 items-center" viewBox="0 0 100 100">
+            <Circle cx={50} cy={50} r={curDrawn.strokeSize * 10} fill={curDrawn.color} />
+          </Svg>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setCurDrawn({ ...curDrawn, erase: false })} className="flex-1 items-center">
           <Ionicons name="brush" size={32} color={curDrawn.erase ? "black" : "blue"} />
@@ -143,7 +158,7 @@ export default function Annotations() {
           <Ionicons name={showAnnotation ? "eye" : "eye-off"} size={32} color="black" />
         </TouchableOpacity>
       </View>
-      <View ref={paintRef} onTouchMove={updatePath} onTouchEnd={savePath} className="flex-1">
+      <View onTouchMove={updatePath} onTouchEnd={savePath} className="flex-1">
         {showAnnotation && (
           <Svg className="absolute">
             {paths.map((path: pathInfo, index: number) => (
@@ -152,7 +167,7 @@ export default function Annotations() {
                 d={path.path.join(' ')}
                 stroke={path.erase ? 'white' : path.color}
                 fill={'transparent'}
-                strokeWidth={3}
+                strokeWidth={path.strokeSize}
                 strokeLinejoin="round"
                 strokeLinecap="round"
               />
@@ -161,7 +176,7 @@ export default function Annotations() {
               d={curDrawn.path.join('\n')}
               stroke={curDrawn.erase ? 'white' : selectedColor.value}
               fill={'transparent'}
-              strokeWidth={3}
+              strokeWidth={curDrawn.strokeSize}
               strokeLinejoin="round"
               strokeLinecap="round"
             />
@@ -190,7 +205,7 @@ export default function Annotations() {
                 <OpacitySlider />
                 <Swatches />
               </ColorPicker>
-              <TouchableOpacity className="bg-black opacity-40 items-center p-2" onPress={() => setShowPicker(false)}>
+              <TouchableOpacity className="bg-black opacity-40 items-center p-2" onPress={confirmColor}>
                 <Text className="text-white">Select</Text>
               </TouchableOpacity>
             </View>
