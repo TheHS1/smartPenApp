@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { View, Text, TouchableOpacity, GestureResponderEvent, Modal, SafeAreaView } from "react-native";
-import { Svg, Path, SvgAst, Circle } from 'react-native-svg'
+import { Svg, Path, Circle } from 'react-native-svg'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import ColorPicker, { Panel1, Swatches, Preview, OpacitySlider, HueSlider, returnedResults } from 'reanimated-color-picker';
-import Animated, { ReanimatedLogLevel, configureReanimatedLogger, useSharedValue } from "react-native-reanimated";
+import { ReanimatedLogLevel, configureReanimatedLogger, useSharedValue } from "react-native-reanimated";
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
