@@ -1,11 +1,13 @@
 import { useState, useRef } from "react";
 import { TouchableOpacity, View, Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import useBLE from '../useBLE'
 import DeviceModal from "./DeviceConnectionModal";
 import Annotations from "../components/annotations";
 
 export default function Main() {
+  const insets = useSafeAreaInsets();
+
   const {
     requestPermissions,
     scanForPeripherals,
@@ -35,10 +37,16 @@ export default function Main() {
 
 
   return (
-    <SafeAreaView className="h-full w-full">
-
+    <View className="h-full w-full">
       {connectedDevice ? (
-        <View className="flex w-full h-full">
+        <View
+          style={{
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            paddingLeft: insets.left,
+            paddingRight: insets.right
+          }}
+          className="flex w-full h-full">
           <Annotations />
           <Text className="flex-initial">{data}</Text>
         </View>
@@ -60,7 +68,7 @@ export default function Main() {
           </TouchableOpacity>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   )
 }
 
