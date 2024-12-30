@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { TouchableOpacity, View, Text } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import useBLE from '../useBLE'
 import DeviceModal from "./DeviceConnectionModal";
 import Annotations from "../components/annotations";

@@ -42,7 +42,7 @@ function TabNavigator() {
       />
       <Tab.Screen
         name="Profile"
-        component={Settings}
+        component={Profile}
         options={{
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />
         }}
