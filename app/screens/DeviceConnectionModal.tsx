@@ -1,7 +1,7 @@
 import { FC, useCallback } from "react";
-import { Button, FlatList, ListRenderItemInfo, Modal, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, ListRenderItemInfo, Modal, Text, TouchableOpacity, View } from "react-native";
 import { Device } from "react-native-ble-plx";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type devProps = {
   closeModal: () => void;

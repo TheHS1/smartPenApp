@@ -4,6 +4,8 @@ import Login from "./screens/Login";
 import Profile from "./screens/Profile";
 import Settings from "./screens/Settings";
 import Main from "./screens/Main";
+import Ionicons from '@expo/vector-icons/Ionicons';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -31,8 +33,20 @@ function TabNavigator() {
         headerShown: false,
       }}
     >
-      <Tab.Screen name="Annotation" component={Main} />
-      <Tab.Screen name="Profile" component={Settings} />
+      <Tab.Screen
+        name="Annotation"
+        component={Main}
+        options={{
+          tabBarIcon: ({ color, size }) => <Ionicons name="pencil" size={size} color={color} />
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={Settings}
+        options={{
+          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />
+        }}
+      />
     </Tab.Navigator>
   )
 }
