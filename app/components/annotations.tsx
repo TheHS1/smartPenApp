@@ -68,45 +68,48 @@ export default function Annotations() {
   };
 
   const savePath = () => {
-    paths.push(curDrawn.value)
-    hist.push({ action: actions.addPath })
-    curDrawn.modify((value) => {
-      'worklet';
-      value = { ...value, path: [] };
-      return value;
-    });
+    setPaths([...paths, curDrawn.value]);
+    setHist([...hist, { action: actions.addPath }])
+    curDrawn.value = { ...curDrawn.value, path: [] };
   }
 
   const clearPath = () => {
-    hist.push({ action: actions.clear, paths: paths.slice() })
+    setHist([...hist, { action: actions.clear, paths: paths.slice() }])
     setPaths([])
     curDrawn.value = { ...curDrawn.value, path: [], erase: false }
   }
 
   const undoDraw = () => {
-    const last = hist.pop()
+    const curHist = [...hist];
+    const last = curHist.pop()
     if (last === undefined)
       return
 
     switch (last.action) {
       case actions.addPath:
-        const path = paths.pop();
+        const curPaths = [...paths];
+        const path = curPaths.pop();
         if (path === undefined)
           return
-        redoHist.push({ action: actions.deletePath, paths: [path] })
+
+        setPaths(curPaths)
+        setRedoHist([...redoHist, { action: actions.deletePath, paths: [path] }])
 
         break;
       case actions.clear:
         if (!last.paths)
           return;
-        redoHist.push({ action: actions.clear });
+        setRedoHist([...redoHist, { action: actions.clear }])
         setPaths(last.paths.slice());
         break;
     }
+
+    setHist(curHist);
   }
 
   const redoDraw = () => {
-    const first = redoHist.pop()
+    const curHist = [...redoHist];
+    const first = curHist.pop()
     if (first === undefined)
       return
 
@@ -114,14 +117,16 @@ export default function Annotations() {
       case actions.deletePath:
         if (first.paths === undefined)
           return
-        paths.push(first.paths[0])
-        hist.push({ action: actions.addPath })
+        setPaths([...paths, first.paths[0]]);
+        setHist([...hist, { action: actions.addPath }])
         break;
       case actions.clear:
-        hist.push({ action: actions.clear, paths: paths.slice() });
+        setHist([...hist, { action: actions.clear, paths: paths.slice() }])
         setPaths([]);
         break;
     }
+
+    setRedoHist(curHist)
   }
 
   const onSelectColor = (color: returnedResults) => {
@@ -218,7 +223,7 @@ export default function Annotations() {
         <TouchableOpacity onPress={clearPath} className="flex-1 items-center">
           <Ionicons name="trash" size={32} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => { 'worklet'; showAnnotation.value = !showAnnotation.value; }} className="flex-1 items-center">
+        <TouchableOpacity onPress={() => { showAnnotation.value = !showAnnotation.value; }} className="flex-1 items-center">
           <Ionicons name={showAnnotation.value ? "eye" : "eye-off"} size={32} color="black" />
         </TouchableOpacity>
       </View>
