@@ -5,6 +5,7 @@ import { Svg, Path, Circle, G } from 'react-native-svg'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import ColorPicker, { Panel1, Swatches, Preview, OpacitySlider, HueSlider, returnedResults } from 'reanimated-color-picker';
 import Animated, { ReanimatedLogLevel, configureReanimatedLogger, runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import AnnotationTools from "./AnnotationTools";
 
 const AnimatedGroup = Animated.createAnimatedComponent(G);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -34,16 +35,13 @@ export default function Annotations() {
   }
 
   const [paths, setPaths] = useState<pathInfo[]>([]);
-  const selectedColor = useSharedValue('red');
-
-  const curDrawn = useSharedValue<pathInfo>({ path: [], erase: false, color: 'red', strokeSize: 1 })
-
-  const showAnnotation = useSharedValue<boolean>(true);
   const [hist, setHist] = useState<history[]>([]);
   const [redoHist, setRedoHist] = useState<history[]>([]);
-
   const [showPicker, setShowPicker] = useState<boolean>(false);
-  const maxStroke = 11;
+
+  const curDrawn = useSharedValue<pathInfo>({ path: [], erase: false, color: 'red', strokeSize: 1 })
+  const selectedColor = useSharedValue('red');
+  const showAnnotation = useSharedValue<boolean>(true);
 
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -51,6 +49,8 @@ export default function Annotations() {
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
+
+  const maxStroke = 11;
 
   const updatePath = (x: number, y: number) => {
     'worklet'
@@ -72,6 +72,8 @@ export default function Annotations() {
     setHist([...hist, { action: actions.addPath }])
     curDrawn.value = { ...curDrawn.value, path: [] };
   }
+
+  const setErase = (set: boolean) => curDrawn.value = { ...curDrawn.value, erase: set };
 
   const clearPath = () => {
     setHist([...hist, { action: actions.clear, paths: paths.slice() }])
@@ -129,14 +131,14 @@ export default function Annotations() {
     setRedoHist(curHist)
   }
 
-  const onSelectColor = (color: returnedResults) => {
-    selectedColor.value = color.rgb;
-  };
-
   const confirmColor = () => {
     curDrawn.value = { ...curDrawn.value, color: selectedColor.value };
     setShowPicker(false)
   }
+
+  const onSelectColor = (color: returnedResults) => selectedColor.value = color.rgb;
+  const toggleShowPicker = () => setShowPicker(!showPicker);
+  const toggleShowAnnotation = () => { showAnnotation.value = !showAnnotation.value; }
 
   const setStroke = () => {
     const size = Math.max((curDrawn.value.strokeSize + 2) % maxStroke, 1);
@@ -198,35 +200,19 @@ export default function Annotations() {
 
   return (
     <View className="flex-1 flex border-blue-500 border-4 w-full h-full">
-      <View className="flex-initial flex flex-row p-2 items-end">
-        <TouchableOpacity onPress={() => setShowPicker(!showPicker)} className="flex-1 items-center">
-          <Ionicons name="color-palette" size={32} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={setStroke} className="flex-1 items-center">
-          <Svg className="flex-1 items-center" viewBox="0 0 100 100">
-            <Circle cx={50} cy={50} r={curDrawn.value.strokeSize * 3} fill={curDrawn.value.color} />
-          </Svg>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => curDrawn.value = { ...curDrawn.value, erase: false }} className="flex-1 items-center">
-          <Ionicons name="brush" size={32} color={curDrawn.value.erase ? "black" : "blue"} />
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => curDrawn.value = { ...curDrawn.value, erase: true }} className="flex-1 items-center">
-          <Ionicons name="beaker-sharp" size={32} color={curDrawn.value.erase ? "blue" : "black"} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={undoDraw} className="flex-1 items-center">
-          <Ionicons name="arrow-undo" size={32} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={redoDraw} className="flex-1 items-center">
-          <Ionicons name="arrow-redo" size={32} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={clearPath} className="flex-1 items-center">
-          <Ionicons name="trash" size={32} color="black" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => { showAnnotation.value = !showAnnotation.value; }} className="flex-1 items-center">
-          <Ionicons name={showAnnotation.value ? "eye" : "eye-off"} size={32} color="black" />
-        </TouchableOpacity>
-      </View>
+      <AnnotationTools
+        strokeSize={curDrawn.value.strokeSize}
+        erase={curDrawn.value.erase}
+        showAnnotation={showAnnotation.value}
+        color={curDrawn.value.color}
+        toggleShowPicker={toggleShowPicker}
+        setStroke={setStroke}
+        setErase={setErase}
+        undoDraw={undoDraw}
+        redoDraw={redoDraw}
+        clearPath={clearPath}
+        toggleShowAnnotation={toggleShowAnnotation}
+      />
       <GestureHandlerRootView>
         <GestureDetector gesture={composed}>
           <View className="flex-1">
