@@ -38,6 +38,7 @@ export default function Annotations() {
   const [hist, setHist] = useState<history[]>([]);
   const [redoHist, setRedoHist] = useState<history[]>([]);
   const [showPicker, setShowPicker] = useState<boolean>(false);
+  const [showAnnotationState, setShowAnnotationState] = useState(true);
 
   const curDrawn = useSharedValue<pathInfo>({ path: [], erase: false, color: 'red', strokeSize: 1 })
   const selectedColor = useSharedValue('red');
@@ -138,7 +139,11 @@ export default function Annotations() {
 
   const onSelectColor = (color: returnedResults) => selectedColor.value = color.rgb;
   const toggleShowPicker = () => setShowPicker(!showPicker);
-  const toggleShowAnnotation = () => { showAnnotation.value = !showAnnotation.value; }
+  const toggleShowAnnotation = () => {
+    const value = showAnnotation.value
+    showAnnotation.value = !showAnnotation.value;
+    setShowAnnotationState(!value);
+  }
 
   const setStroke = () => {
     const size = Math.max((curDrawn.value.strokeSize + 2) % maxStroke, 1);
@@ -203,7 +208,7 @@ export default function Annotations() {
       <AnnotationTools
         strokeSize={curDrawn.value.strokeSize}
         erase={curDrawn.value.erase}
-        showAnnotation={showAnnotation.value}
+        showAnnotation={showAnnotationState}
         color={curDrawn.value.color}
         toggleShowPicker={toggleShowPicker}
         setStroke={setStroke}
