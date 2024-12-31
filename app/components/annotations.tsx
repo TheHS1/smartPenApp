@@ -39,8 +39,11 @@ export default function Annotations() {
   const [redoHist, setRedoHist] = useState<history[]>([]);
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [showAnnotationState, setShowAnnotationState] = useState(true);
+  const [erase, setErase] = useState<boolean>(false);
+  const [color, setColor] = useState<string>('red');
+  const [strokeSize, setStrokeSize] = useState<number>(1);
 
-  const curDrawn = useSharedValue<pathInfo>({ path: [], erase: false, color: 'red', strokeSize: 1 })
+  const curDrawn = useSharedValue<string[]>([]);
   const selectedColor = useSharedValue('red');
   const showAnnotation = useSharedValue<boolean>(true);
 
@@ -54,55 +57,54 @@ export default function Annotations() {
   const maxStroke = 11;
 
   const updatePath = (x: number, y: number) => {
-    'worklet'
+    'worklet';
     if (!showAnnotation.value)
-      return
+      return;
 
     runOnJS(setRedoHist)([]);
 
-    const curPath: string[] = [...curDrawn.value.path];
+    const curPath: string[] = [...curDrawn.value];
 
     // Due to SVG format, make sure that points are in MX,Y format
     const point = `${curPath.length === 0 ? 'M' : ""}${((x - translateX.value) / scale.value).toFixed(0)},${((y - translateY.value) / scale.value).toFixed(0)}`;
-    curPath.push(point)
-    curDrawn.value = { ...curDrawn.value, path: curPath }
+    curPath.push(point);
+    curDrawn.value = curPath;
   };
 
   const savePath = () => {
-    setPaths([...paths, curDrawn.value]);
-    setHist([...hist, { action: actions.addPath }])
-    curDrawn.value = { ...curDrawn.value, path: [] };
+    setPaths([...paths, { path: curDrawn.value, erase: erase, color: color, strokeSize: strokeSize }]);
+    setHist([...hist, { action: actions.addPath }]);
+    curDrawn.value = [];
   }
 
-  const setErase = (set: boolean) => curDrawn.value = { ...curDrawn.value, erase: set };
-
   const clearPath = () => {
-    setHist([...hist, { action: actions.clear, paths: paths.slice() }])
-    setPaths([])
-    curDrawn.value = { ...curDrawn.value, path: [], erase: false }
+    setHist([...hist, { action: actions.clear, paths: paths.slice() }]);
+    setPaths([]);
+    setErase(false);
+    curDrawn.value = [];
   }
 
   const undoDraw = () => {
     const curHist = [...hist];
-    const last = curHist.pop()
+    const last = curHist.pop();
     if (last === undefined)
-      return
+      return;
 
     switch (last.action) {
       case actions.addPath:
         const curPaths = [...paths];
         const path = curPaths.pop();
         if (path === undefined)
-          return
+          return;
 
-        setPaths(curPaths)
-        setRedoHist([...redoHist, { action: actions.deletePath, paths: [path] }])
+        setPaths(curPaths);
+        setRedoHist([...redoHist, { action: actions.deletePath, paths: [path] }]);
 
         break;
       case actions.clear:
         if (!last.paths)
           return;
-        setRedoHist([...redoHist, { action: actions.clear }])
+        setRedoHist([...redoHist, { action: actions.clear }]);
         setPaths(last.paths.slice());
         break;
     }
@@ -112,42 +114,42 @@ export default function Annotations() {
 
   const redoDraw = () => {
     const curHist = [...redoHist];
-    const first = curHist.pop()
+    const first = curHist.pop();
     if (first === undefined)
-      return
+      return;
 
     switch (first.action) {
       case actions.deletePath:
         if (first.paths === undefined)
-          return
+          return;
         setPaths([...paths, first.paths[0]]);
-        setHist([...hist, { action: actions.addPath }])
+        setHist([...hist, { action: actions.addPath }]);
         break;
       case actions.clear:
-        setHist([...hist, { action: actions.clear, paths: paths.slice() }])
+        setHist([...hist, { action: actions.clear, paths: paths.slice() }]);
         setPaths([]);
         break;
     }
 
-    setRedoHist(curHist)
+    setRedoHist(curHist);
   }
 
   const confirmColor = () => {
-    curDrawn.value = { ...curDrawn.value, color: selectedColor.value };
-    setShowPicker(false)
+    setColor(selectedColor.value);
+    setShowPicker(false);
   }
 
   const onSelectColor = (color: returnedResults) => selectedColor.value = color.rgb;
   const toggleShowPicker = () => setShowPicker(!showPicker);
   const toggleShowAnnotation = () => {
-    const value = showAnnotation.value
+    const value = showAnnotation.value;
     showAnnotation.value = !showAnnotation.value;
     setShowAnnotationState(!value);
   }
 
   const setStroke = () => {
-    const size = Math.max((curDrawn.value.strokeSize + 2) % maxStroke, 1);
-    curDrawn.value = { ...curDrawn.value, strokeSize: size };
+    const size = Math.max((strokeSize + 2) % maxStroke, 1);
+    setStrokeSize(size);
   }
 
   const clamp = (num: number, min: number, max: number) => {
@@ -185,7 +187,7 @@ export default function Annotations() {
 
   const animatedPropsPath = useAnimatedProps(() => {
     return {
-      d: curDrawn.value.path.join('\n'),
+      d: curDrawn.value.join('\n'),
     };
   });
 
@@ -206,10 +208,10 @@ export default function Annotations() {
   return (
     <View className="flex-1 flex border-blue-500 border-4 w-full h-full">
       <AnnotationTools
-        strokeSize={curDrawn.value.strokeSize}
-        erase={curDrawn.value.erase}
+        strokeSize={strokeSize}
+        erase={erase}
         showAnnotation={showAnnotationState}
-        color={curDrawn.value.color}
+        color={color}
         toggleShowPicker={toggleShowPicker}
         setStroke={setStroke}
         setErase={setErase}
@@ -238,9 +240,9 @@ export default function Annotations() {
                   ))}
                   <AnimatedPath
                     animatedProps={animatedPropsPath}
-                    stroke={curDrawn.value.erase ? 'white' : selectedColor.value}
+                    stroke={erase ? 'white' : selectedColor.value}
                     fill={'transparent'}
-                    strokeWidth={curDrawn.value.strokeSize}
+                    strokeWidth={strokeSize}
                     strokeLinejoin="round"
                     strokeLinecap="round"
                   />
