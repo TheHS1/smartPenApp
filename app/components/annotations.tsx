@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { View, Text, TouchableOpacity, Modal, SafeAreaView } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import ColorPicker, { Panel1, Swatches, Preview, OpacitySlider, HueSlider, returnedResults } from 'reanimated-color-picker';
+import ColorPicker, { Panel1, Swatches, Preview, HueSlider, returnedResults } from 'reanimated-color-picker';
 import { ReanimatedLogLevel, configureReanimatedLogger, runOnJS, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import AnnotationTools from "./AnnotationTools";
 import { Canvas, Group, Path, SkPath, Skia } from "@shopify/react-native-skia";
@@ -186,8 +186,6 @@ export default function Annotations() {
   const movement = Gesture.Simultaneous(panGesture, pinchGesture)
   const composed = Gesture.Race(drawGesture, movement)
 
-  const ok = useRef(null);
-
   const transform = useDerivedValue(() => {
     return [
       { scale: scale.value },
@@ -198,7 +196,7 @@ export default function Annotations() {
   })
 
   return (
-    <View className="flex-1 flex border-blue-500 border-4 w-full h-full" ref={ok}>
+    <View className="flex-1 flex border-blue-500 border-4 w-full h-full">
       <AnnotationTools
         strokeSize={strokeSize}
         erase={erase}
@@ -256,7 +254,6 @@ export default function Annotations() {
                 <Preview />
                 <Panel1 />
                 <HueSlider />
-                <OpacitySlider />
                 <Swatches />
               </ColorPicker>
               <TouchableOpacity className="bg-black opacity-40 items-center p-2" onPress={confirmColor}>
