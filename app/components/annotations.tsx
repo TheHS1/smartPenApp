@@ -64,7 +64,7 @@ export default function Annotations() {
     let curPath: string = curDrawn.value;
 
     // Due to SVG format, make sure that points are in MX,Y format
-    const point = `${curPath.length === 0 ? 'M' : "L"}${((x) / scale.value - translateX.value).toFixed(0)},${((y) / scale.value - translateY.value).toFixed(0)}`;
+    const point = `${curPath.length === 0 ? 'M' : "L"}${((x - translateX.value) / scale.value).toFixed(0)},${((y - translateY.value) / scale.value).toFixed(0)}`;
     curPath += point;
     curDrawn.value = curPath;
   };
@@ -192,8 +192,8 @@ export default function Annotations() {
   const transform = useDerivedValue(() => {
     return [
       { scale: scale.value },
-      { translateX: translateX.value },
-      { translateY: translateY.value },
+      { translateX: translateX.value / scale.value },
+      { translateY: translateY.value / scale.value },
     ]
 
   })
