@@ -70,13 +70,14 @@ export default function Annotations() {
   };
 
   const savePath = () => {
-    setPaths([...paths, { path: curDrawn.value, erase: erase, color: color, strokeSize: strokeSize }]);
-    setHist([...hist, { action: actions.addPath }]);
+    const pathSave = curDrawn.value;
+    setPaths((prevPaths) => [...prevPaths, { path: pathSave, erase: erase, color: color, strokeSize: strokeSize }]);
+    setHist((prevHist) => [...prevHist, { action: actions.addPath }]);
     curDrawn.value = "";
   }
 
   const clearPath = () => {
-    setHist([...hist, { action: actions.clear, paths: paths }]);
+    setHist((prevHist) => [...prevHist, { action: actions.clear, paths: paths }]);
     setPaths([]);
     setErase(false);
     curDrawn.value = "";
@@ -96,13 +97,13 @@ export default function Annotations() {
           return;
 
         setPaths(curPaths);
-        setRedoHist([...redoHist, { action: actions.deletePath, paths: [path] }]);
+        setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.deletePath, paths: [path] }]);
 
         break;
       case actions.clear:
         if (!last.paths)
           return;
-        setRedoHist([...redoHist, { action: actions.clear }]);
+        setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.clear }]);
         setPaths(last.paths.slice());
         break;
     }
@@ -120,11 +121,13 @@ export default function Annotations() {
       case actions.deletePath:
         if (first.paths === undefined)
           return;
-        setPaths([...paths, first.paths[0]]);
-        setHist([...hist, { action: actions.addPath }]);
+
+        const addPath = first.paths[0];
+        setPaths((prevPaths) => [...prevPaths, addPath]);
+        setHist((prevHist) => [...prevHist, { action: actions.addPath }]);
         break;
       case actions.clear:
-        setHist([...hist, { action: actions.clear, paths: paths.slice() }]);
+        setHist((prevHist) => [...prevHist, { action: actions.clear, paths: paths.slice() }]);
         setPaths([]);
         break;
     }
