@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, Modal, SafeAreaView } from "react-native";
+import { View, Text, TouchableOpacity, Modal, SafeAreaView, Button } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import ColorPicker, { Panel1, Swatches, Preview, HueSlider, returnedResults } from 'reanimated-color-picker';
 import { ReanimatedLogLevel, configureReanimatedLogger, runOnJS, useDerivedValue, useSharedValue } from "react-native-reanimated";
@@ -189,6 +189,13 @@ export default function Annotations() {
   const movement = Gesture.Simultaneous(panGesture, pinchGesture)
   const composed = Gesture.Race(drawGesture, movement)
 
+  const resetTransform = () => {
+    'worklet'
+    translateX.value = 0;
+    translateY.value = 0;
+    scale.value = 1;
+  }
+
   const transform = useDerivedValue(() => {
     return [
       { scale: scale.value },
@@ -249,6 +256,7 @@ export default function Annotations() {
           </Canvas>
         </GestureDetector>
       </GestureHandlerRootView>
+      <Button title="Reset" onPress={resetTransform} />
       <Modal className="flex items-center w-full" visible={showPicker} animationType='slide' transparent={true}>
         <SafeAreaView>
           <View className="flex items-center">
