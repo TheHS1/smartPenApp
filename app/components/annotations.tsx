@@ -80,6 +80,7 @@ export default function Annotations() {
     setHist((prevHist) => [...prevHist, { action: actions.clear, paths: paths }]);
     setPaths([]);
     setErase(false);
+    setRedoHist([]);
     curDrawn.value = "";
   }
 
