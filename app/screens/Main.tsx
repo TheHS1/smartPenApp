@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { TouchableOpacity, View, Text } from "react-native";
+import { TouchableOpacity, View, Text, Button } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import useBLE from '../useBLE'
 import DeviceModal from "./DeviceConnectionModal";
@@ -35,10 +35,11 @@ export default function Main() {
     setIsModalVisible(true);
   }
 
+  const [bypass, setBypass] = useState<Boolean>(false);
 
   return (
     <View className="h-full w-full">
-      {connectedDevice ? (
+      {(connectedDevice || bypass) ? (
         <View
           style={{
             paddingTop: insets.top,
@@ -59,13 +60,14 @@ export default function Main() {
             <Text className="text-center bg-blue-500 p-5 m-10 text-white">
               Connect
             </Text>
-            <DeviceModal
-              closeModal={hideModal}
-              visible={isModalVisible}
-              connectToPeripheral={connectToDevice}
-              devices={allDevices}
-            />
           </TouchableOpacity>
+          <Button onPress={() => setBypass(true)} title="Skip" />
+          <DeviceModal
+            closeModal={hideModal}
+            visible={isModalVisible}
+            connectToPeripheral={connectToDevice}
+            devices={allDevices}
+          />
         </View>
       )}
     </View>
