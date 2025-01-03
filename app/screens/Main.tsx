@@ -1,12 +1,30 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { TouchableOpacity, View, Text, Button } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import useBLE from '../useBLE'
 import DeviceModal from "./DeviceConnectionModal";
 import Annotations from "../components/annotations";
+import { Device } from "react-native-ble-plx";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Main() {
   const insets = useSafeAreaInsets();
+
+
+  useEffect(() => {
+    const fetchDevice = async () => {
+      try {
+        const deviceId = await AsyncStorage.getItem('deviceId')
+        if (deviceId) {
+          connectToDevice(JSON.parse(deviceId));
+        }
+      } catch (err) {
+        console.warn(err)
+      }
+    }
+
+    fetchDevice().catch(console.error);
+  }, [])
 
   const {
     requestPermissions,
@@ -23,6 +41,16 @@ export default function Main() {
     const isPermissionsEnabled = await requestPermissions();
     if (isPermissionsEnabled) {
       scanForPeripherals();
+    }
+  }
+
+  const connectToPeripheral = async (deviceId: Device) => {
+    try {
+      connectToDevice(deviceId);
+      if (deviceId.name)
+        await AsyncStorage.setItem('deviceId', JSON.stringify(deviceId))
+    } catch (err) {
+      console.warn(err);
     }
   }
 
@@ -65,7 +93,7 @@ export default function Main() {
           <DeviceModal
             closeModal={hideModal}
             visible={isModalVisible}
-            connectToPeripheral={connectToDevice}
+            connectToPeripheral={connectToPeripheral}
             devices={allDevices}
           />
         </View>
