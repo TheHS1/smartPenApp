@@ -63,7 +63,8 @@ export default function Main() {
     setIsModalVisible(true);
   }
 
-  const [bypass, setBypass] = useState<Boolean>(false);
+  const [bypass, setBypass] = useState<boolean>(false);
+  const [pageNum, setPageNum] = useState<number>(0);
 
   return (
     <View className="h-full w-full">
@@ -76,7 +77,23 @@ export default function Main() {
             paddingRight: insets.right
           }}
           className="flex w-full h-full">
-          <Annotations />
+          <View className="flex-1 flex flex-row">
+            <View className="w-2/6 h-full flex-initial flex bg-gray-100">
+              <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(1)}>
+                <Text>1</Text>
+              </TouchableOpacity>
+              <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(2)}>
+                <Text>2</Text>
+              </TouchableOpacity>
+              <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(3)}>
+                <Text>3</Text>
+              </TouchableOpacity>
+              <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(4)}>
+                <Text>4</Text>
+              </TouchableOpacity>
+            </View>
+            <Annotations />
+          </View>
           <Text className="flex-initial">{data}</Text>
         </View>
       ) : (
