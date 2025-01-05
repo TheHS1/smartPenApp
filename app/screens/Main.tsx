@@ -6,10 +6,24 @@ import DeviceModal from "./DeviceConnectionModal";
 import Annotations from "../components/annotations";
 import { Device } from "react-native-ble-plx";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Main() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const [showPageSelector, setShowPageSelector] = useState<boolean>(false);
 
+  // set button action for menu button in header
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => setShowPageSelector(!showPageSelector)}>
+          <Ionicons name="menu" size={36} color="blue" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, showPageSelector]);
 
   useEffect(() => {
     const fetchDevice = async () => {
@@ -78,20 +92,22 @@ export default function Main() {
           }}
           className="flex w-full h-full">
           <View className="flex-1 flex flex-row">
-            <View className="w-2/6 h-full flex-initial flex bg-gray-100">
-              <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(1)}>
-                <Text>1</Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(2)}>
-                <Text>2</Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(3)}>
-                <Text>3</Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(4)}>
-                <Text>4</Text>
-              </TouchableOpacity>
-            </View>
+            {showPageSelector && (
+              <View className="w-2/6 h-full flex-initial flex bg-gray-100">
+                <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(1)}>
+                  <Text>1</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(2)}>
+                  <Text>2</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(3)}>
+                  <Text>3</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(4)}>
+                  <Text>4</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             <Annotations />
           </View>
           <Text className="flex-initial">{data}</Text>
