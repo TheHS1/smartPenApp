@@ -1,9 +1,19 @@
 import { View, Text, TouchableOpacity } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from "expo-router";
+import { useEffect } from "react";
 
 export default function Profile() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+
+  // Show bar in profile page
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: true
+    });
+  }, [navigation]);
 
   return (
     <View

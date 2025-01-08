@@ -88,11 +88,11 @@ export default function Annotations({ pageNum }: annotationProps) {
     const saveAnnotations = async () => {
       try {
         if (paths && paths.length > 0) {
-          const file = new File(Paths.document, `untitled-${pageNum}.ispen`)
+          const file = new File(Paths.document, `untitled-${pageNum}.ispen`);
           if (!file.exists)
-            file.create()
-          file.write(JSON.stringify(paths))
-          await AsyncStorage.setItem('curFile', file.name)
+            file.create();
+          file.write(JSON.stringify(paths));
+          await AsyncStorage.setItem('curFile', file.name);
         }
       } catch (err) {
         console.warn(err);
