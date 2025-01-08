@@ -68,7 +68,9 @@ export default function Annotations({ pageNum }: annotationProps) {
         if (!savedFile)
           return
 
-        const file = new File(Paths.document, `untitled-${pageNum}.ispen`);
+        const fileInfo = JSON.parse(savedFile)
+
+        const file = new File(Paths.document, `${pageNum}-${fileInfo.name}`);
         if (!file.exists)
           return
 
@@ -88,11 +90,15 @@ export default function Annotations({ pageNum }: annotationProps) {
     const saveAnnotations = async () => {
       try {
         if (paths && paths.length > 0) {
-          const file = new File(Paths.document, `untitled-${pageNum}.ispen`);
+          const savedFile = await AsyncStorage.getItem('curFile');
+          if (!savedFile)
+            return
+
+          const fileInfo = JSON.parse(savedFile)
+          const file = new File(Paths.document, `${pageNum}-${fileInfo.name}`);
           if (!file.exists)
             file.create();
           file.write(JSON.stringify(paths));
-          await AsyncStorage.setItem('curFile', file.name);
         }
       } catch (err) {
         console.warn(err);

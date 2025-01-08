@@ -82,34 +82,35 @@ export default function Main() {
   const [pageNum, setPageNum] = useState<number>(0);
 
   return (
-    <View className="h-full w-full">
+    <View
+      style={{
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+        paddingLeft: insets.left,
+        paddingRight: insets.right
+      }}
+      className="h-full w-full">
       {(connectedDevice || bypass) ? (
         <View
-          style={{
-            paddingTop: insets.top,
-            paddingBottom: insets.bottom,
-            paddingLeft: insets.left,
-            paddingRight: insets.right
-          }}
           className="flex w-full h-full">
           <View className="flex-1 flex flex-row">
             {showPageSelector && (
               <View className="w-2/6 h-full flex-initial flex bg-gray-100">
                 <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(0)}>
                   <Text className="absolute">1</Text>
-                  <PagePreview fileName="untitled" pageNum={0} />
+                  <PagePreview fileName="untitled.ispen" pageNum={0} />
                 </TouchableOpacity>
                 <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(1)}>
                   <Text className="absolute">2</Text>
-                  <PagePreview fileName="untitled" pageNum={1} />
+                  <PagePreview fileName="untitled.ispen" pageNum={1} />
                 </TouchableOpacity>
                 <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(2)}>
                   <Text className="absolute">3</Text>
-                  <PagePreview fileName="untitled" pageNum={2} />
+                  <PagePreview fileName="untitled.ispen" pageNum={2} />
                 </TouchableOpacity>
                 <TouchableOpacity className="flex-1 border m-2 p-1 bg-white" onPress={() => setPageNum(3)}>
                   <Text className="absolute">4</Text>
-                  <PagePreview fileName="untitled" pageNum={3} />
+                  <PagePreview fileName="untitled.ispen" pageNum={3} />
                 </TouchableOpacity>
               </View>
             )}

@@ -20,13 +20,10 @@ export default function PagePreview({ fileName, pageNum }: previewProps) {
   }
 
   useEffect(() => {
+    console.log
     const fetchAnnotation = async () => {
       try {
-        const savedFile = await AsyncStorage.getItem('curFile');
-        if (!savedFile)
-          return
-
-        const file = new File(Paths.document, `${fileName}-${pageNum}.ispen`);
+        const file = new File(Paths.document, `${pageNum}-${fileName}`);
         if (!file.exists)
           return
 

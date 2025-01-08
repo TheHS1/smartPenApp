@@ -58,6 +58,17 @@ export default function Documents() {
     navigation.navigate('Editor' as never);
   }
 
+  const openFile = async (file: fileInfo) => {
+    try {
+      console.log(file)
+      await AsyncStorage.setItem('curFile', JSON.stringify(file))
+    } catch (err) {
+      console.warn(err);
+    }
+
+    navigation.navigate('Editor' as never);
+  }
+
   // set button action for menu button in header
   useEffect(() => {
     navigation.setOptions({
@@ -79,7 +90,7 @@ export default function Documents() {
       }}
       className="h-full w-full flex flex-row flex-wrap justify-center">
       {documents.map((document: fileInfo, index: number) => (
-        <TouchableOpacity key={index} className="h-1/4 w-2/5 m-2 flex bg-gray-100 p-1">
+        <TouchableOpacity onPress={() => openFile(document)} key={index} className="h-1/4 w-2/5 m-2 flex bg-gray-100 p-1">
           <View className="flex-1 w-full border bg-white">
             <PagePreview fileName={document.name} pageNum={0} />
           </View>
