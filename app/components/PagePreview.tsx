@@ -1,7 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useIsFocused } from "@react-navigation/native";
 import { File, Paths } from 'expo-file-system/next';
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 interface previewProps {
@@ -11,6 +11,7 @@ interface previewProps {
 
 export default function PagePreview({ fileName, pageNum }: previewProps) {
   const [paths, setPaths] = useState<pathInfo[]>([]);
+  const focused = useIsFocused();
 
   interface pathInfo {
     path: string;
@@ -20,7 +21,6 @@ export default function PagePreview({ fileName, pageNum }: previewProps) {
   }
 
   useEffect(() => {
-    console.log
     const fetchAnnotation = async () => {
       try {
         const file = new File(Paths.document, `${pageNum}-${fileName}`);
@@ -34,8 +34,10 @@ export default function PagePreview({ fileName, pageNum }: previewProps) {
       }
     }
 
-    fetchAnnotation().catch(console.error);
-  }, [])
+    if (focused) {
+      fetchAnnotation().catch(console.error);
+    }
+  }, [focused])
 
   return (
     <View className="h-full w-full relative">

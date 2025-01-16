@@ -5,7 +5,6 @@ import ColorPicker, { Panel1, Swatches, Preview, HueSlider, returnedResults } fr
 import { ReanimatedLogLevel, configureReanimatedLogger, runOnJS, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import AnnotationTools from "./AnnotationTools";
 import { Canvas, Group, Path, SkPath, Skia } from "@shopify/react-native-skia";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { File, Paths } from 'expo-file-system/next';
 
 configureReanimatedLogger({
@@ -15,9 +14,10 @@ configureReanimatedLogger({
 
 interface annotationProps {
   pageNum: number;
+  fileName: string;
 }
 
-export default function Annotations({ pageNum }: annotationProps) {
+export default function Annotations({ pageNum, fileName }: annotationProps) {
   interface pathInfo {
     path: string;
     erase: boolean;
@@ -64,13 +64,7 @@ export default function Annotations({ pageNum }: annotationProps) {
   useEffect(() => {
     const fetchAnnotation = async () => {
       try {
-        const savedFile = await AsyncStorage.getItem('curFile');
-        if (!savedFile)
-          return
-
-        const fileInfo = JSON.parse(savedFile)
-
-        const file = new File(Paths.document, `${pageNum}-${fileInfo.name}`);
+        const file = new File(Paths.document, `${pageNum}-${fileName}`);
         if (!file.exists)
           return
 
@@ -90,12 +84,7 @@ export default function Annotations({ pageNum }: annotationProps) {
     const saveAnnotations = async () => {
       try {
         if (paths && paths.length > 0) {
-          const savedFile = await AsyncStorage.getItem('curFile');
-          if (!savedFile)
-            return
-
-          const fileInfo = JSON.parse(savedFile)
-          const file = new File(Paths.document, `${pageNum}-${fileInfo.name}`);
+          const file = new File(Paths.document, `${pageNum}-${fileName}`);
           if (!file.exists)
             file.create();
           file.write(JSON.stringify(paths));

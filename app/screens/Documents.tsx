@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { File, Paths } from "expo-file-system/next";
 import { useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
@@ -9,21 +8,16 @@ import PagePreview from "../components/PagePreview";
 
 
 export default function Documents() {
-  interface fileInfo {
-    name: string;
-    numPages: number;
-  }
-
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const [documents, setDocuments] = useState<fileInfo[]>([]);
+  const [documents, setDocuments] = useState<Map<string, fileInfo>>(new Map());
 
   useEffect(() => {
     const getFiles = async () => {
       const fileNames = await AsyncStorage.getItem('files')
-      let files: fileInfo[] = [];
+      let files: Map<string, fileInfo> = new Map();
       if (fileNames) {
-        files = JSON.parse(fileNames);
+        files = new Map(JSON.parse(fileNames));
       }
       setDocuments(files)
     }
@@ -32,41 +26,29 @@ export default function Documents() {
   }, [])
 
   const updateAndRedirect = async () => {
-    // update CurFile
-    const file: fileInfo = { name: 'untitled.ispen', numPages: 1 };
-    try {
-      await AsyncStorage.setItem('curFile', JSON.stringify(file))
-    } catch (err) {
-      console.warn(err);
-    }
+    const newFile: fileInfo = { numPages: 1 };
 
     const fileNames = await AsyncStorage.getItem('files')
-    let files: fileInfo[] = [];
+    let files: Map<string, fileInfo> = new Map();
     if (fileNames) {
-      files = JSON.parse(fileNames);
+      files = new Map(JSON.parse(fileNames));
     }
 
-    files.push(file)
+    files.set("untitled.ispen", newFile);
 
     try {
-      await AsyncStorage.setItem('files', JSON.stringify(files))
+      await AsyncStorage.setItem('files', JSON.stringify(Array.from(files.entries())));
     } catch (err) {
       console.warn(err);
     }
     setDocuments(files)
 
-    navigation.navigate('Editor' as never);
+    navigation.navigate('Editor', { fileName: 'untitled.ispen' });
   }
 
-  const openFile = async (file: fileInfo) => {
-    try {
-      console.log(file)
-      await AsyncStorage.setItem('curFile', JSON.stringify(file))
-    } catch (err) {
-      console.warn(err);
-    }
-
-    navigation.navigate('Editor' as never);
+  const openFile = async (file: string) => {
+    // pass file name to annotation component
+    navigation.navigate('Editor', { fileName: file });
   }
 
   // set button action for menu button in header
@@ -89,12 +71,12 @@ export default function Documents() {
         paddingRight: insets.right
       }}
       className="h-full w-full flex flex-row flex-wrap justify-center">
-      {documents.map((document: fileInfo, index: number) => (
-        <TouchableOpacity onPress={() => openFile(document)} key={index} className="h-1/4 w-2/5 m-2 flex bg-gray-100 p-1">
+      {Array.from(documents).map(([name, data], index) => (
+        <TouchableOpacity onPress={() => openFile(name)} key={index} className="h-1/4 w-2/5 m-2 flex bg-gray-100 p-1">
           <View className="flex-1 w-full border bg-white">
-            <PagePreview fileName={document.name} pageNum={0} />
+            <PagePreview fileName={name} pageNum={0} />
           </View>
-          <Text className="text-xs flex-initial font-bold">{document.name}</Text>
+          <Text className="text-xs flex-initial font-bold">{name}</Text>
         </TouchableOpacity>
       ))}
     </View>

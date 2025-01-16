@@ -1,0 +1,3 @@
+interface fileInfo {
+    numPages: number;
+}
