@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { TouchableOpacity, View, Text, Button } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import useBLE from '../useBLE'
@@ -9,6 +9,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import PagePreview from "../components/PagePreview";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Reanimated, { SharedValue, useAnimatedStyle } from "react-native-reanimated";
 
 export default function Main({ route }) {
   const { fileName } = route.params;
@@ -17,7 +20,8 @@ export default function Main({ route }) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const [showPageSelector, setShowPageSelector] = useState<boolean>(false);
-  const [fileInfo, setFileInfo] = useState<fileInfo>({ numPages: 0 });
+  const [fInfo, setFileInfo] = useState<fileInfo>({ pages: [] });
+  const [paths, setPaths] = useState<pathInfo[]>([]);
 
   // set button action for menu button in header
   useEffect(() => {
@@ -49,7 +53,8 @@ export default function Main({ route }) {
         files = new Map(JSON.parse(fileNames));
       }
       if (files.has(fileName)) {
-        setFileInfo(files.get(fileName) ?? { numPages: 0 })
+        setFileInfo(files.get(fileName) ?? { pages: [] })
+        setPaths(files.get(fileName)?.pages[0] ?? []);
       }
     }
 
@@ -95,19 +100,77 @@ export default function Main({ route }) {
   }
 
   const addPage = async () => {
-    const updateFile = { numPages: fileInfo.numPages + 1 }
-    setFileInfo(updateFile)
-    const fileNames = await AsyncStorage.getItem('files')
+    let i: number = fInfo.pages.length;
+    const fileNames = await AsyncStorage.getItem('files');
     let files: Map<string, fileInfo> = new Map();
     if (fileNames) {
       files = new Map(JSON.parse(fileNames));
     }
-    files.set(fileName, updateFile);
+    const newDoc = { pages: [...fInfo.pages, []] };
+    setFileInfo(newDoc);
+    files.set(fileName, newDoc);
     await AsyncStorage.setItem('files', JSON.stringify(Array.from(files.entries())));
+  }
+
+  const deletePage = async (ind: number) => {
+    const pages: pathInfo[][] = fInfo.pages;
+    pages.splice(ind, 1);
+
+    setFileInfo({ pages: pages });
+    const fileNames = await AsyncStorage.getItem('files');
+    let files: Map<string, fileInfo> = new Map();
+    if (fileNames) {
+      files = new Map(JSON.parse(fileNames));
+    }
+    files.set(fileName, { pages: pages });
+    await AsyncStorage.setItem('files', JSON.stringify(Array.from(files.entries())));
+  }
+
+  const saveDocument = async () => {
+    const fileNames = await AsyncStorage.getItem('files');
+    let files: Map<string, fileInfo> = new Map();
+    if (fileNames) {
+      files = new Map(JSON.parse(fileNames));
+    }
+    const newDoc = fInfo;
+    newDoc.pages[pageNum] = paths;
+    setFileInfo(newDoc);
+    files.set(fileName, newDoc);
+    await AsyncStorage.setItem('files', JSON.stringify(Array.from(files.entries())));
+  }
+
+  let row: Array<any> = [];
+  const closeRow = (index: number) => {
+    setTimeout(() => {
+      if (row[index]) {
+        row[index].close();
+      }
+    }, 2000)
+  };
+
+  function RightAction(prog: SharedValue<number>, drag: SharedValue<number>, pageNum: number) {
+    const styleAnimation = useAnimatedStyle(() => {
+      return {
+        transform: [{ translateX: drag.value + 25 }],
+      };
+    });
+
+    return (
+      <Reanimated.View className="flex items-center justify-center" style={styleAnimation}>
+        <TouchableOpacity onPress={() => deletePage(pageNum)}>
+          <Ionicons name="close-outline" size={24} color="red" />
+        </TouchableOpacity>
+      </Reanimated.View>
+    );
   }
 
   const [bypass, setBypass] = useState<boolean>(false);
   const [pageNum, setPageNum] = useState<number>(0);
+
+  const changePage = (index: number) => {
+    setPageNum(index);
+    setPaths(fInfo.pages[index]);
+  }
 
   return (
     <View
@@ -125,16 +188,32 @@ export default function Main({ route }) {
             {showPageSelector && (
               <View className="w-2/6 h-full flex-initial flex bg-gray-100">
 
-                {Array.from({ length: fileInfo.numPages }).map((_, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    className="flex-1 border m-2 p-1 bg-white"
-                    onPress={() => setPageNum(index)}
-                  >
-                    <Text className="absolute">{index}</Text>
-                    <PagePreview fileName={fileName} pageNum={index} />
-                  </TouchableOpacity>
-                ))}
+                <GestureHandlerRootView>
+                  {fInfo.pages.map((page: pathInfo[], index) => (
+                    <View className="flex-1 m-1 flex flex-row" key={index}>
+                      <ReanimatedSwipeable
+                        onSwipeableOpen={() => closeRow(index)}
+                        ref={ref => (row[index] = ref)}
+                        friction={2}
+                        leftThreshold={0}
+                        enableTrackpadTwoFingerGesture
+                        renderRightActions={(progress, drag) => RightAction(progress, drag, index)}
+                        containerStyle={{ flexDirection: "row", flex: 1 }}
+                        childrenContainerStyle={{ flex: 1 }}
+                      >
+                        <View className="flex flex-row">
+                          <Text className="p-1">{index + 1}</Text>
+                          <TouchableOpacity
+                            className="flex-1 border bg-white"
+                            onPress={() => changePage(index)}
+                          >
+                            <PagePreview paths={page} />
+                          </TouchableOpacity>
+                        </View>
+                      </ReanimatedSwipeable>
+                    </View>
+                  ))}
+                </GestureHandlerRootView>
 
                 <TouchableOpacity className="flex-initial" onPress={addPage}>
                   <Text className="text-center bg-gray-300 p-2 m-2 text-white">
@@ -143,7 +222,7 @@ export default function Main({ route }) {
                 </TouchableOpacity>
               </View>
             )}
-            <Annotations pageNum={pageNum} fileName={fileName} />
+            <Annotations paths={paths} setPaths={setPaths} saveDocument={saveDocument} />
           </View>
           <Text className="flex-initial">{data}</Text>
         </View>
