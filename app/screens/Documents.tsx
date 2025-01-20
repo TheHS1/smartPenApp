@@ -6,6 +6,8 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PagePreview from "../components/PagePreview";
 import { useIsFocused } from "@react-navigation/native";
+import { getFiles } from "../utils";
+import { fileInfo } from "../types";
 
 export default function Documents() {
   const insets = useSafeAreaInsets();
@@ -14,25 +16,13 @@ export default function Documents() {
   const focused = useIsFocused();
 
   useEffect(() => {
-    const getFiles = async () => {
-      const fileNames = await AsyncStorage.getItem('files')
-      let files: Map<string, fileInfo> = new Map();
-      if (fileNames) {
-        files = new Map(JSON.parse(fileNames));
-      }
-      setDocuments(files)
-    }
-
-    getFiles().catch(console.error);
+    getFiles()
+      .then(setDocuments)
+      .catch(console.error);
   }, [focused])
 
   const updateAndRedirect = async () => {
-
-    const fileNames = await AsyncStorage.getItem('files')
-    let files: Map<string, fileInfo> = new Map();
-    if (fileNames) {
-      files = new Map(JSON.parse(fileNames));
-    }
+    const files = documents;
 
     let i: number = 0;
     while (files.has(`untitled${i}.ispen`)) {

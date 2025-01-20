@@ -1,11 +1,11 @@
-interface pathInfo {
+export interface pathInfo {
     path: string;
     erase: boolean;
     color: string;
     strokeSize: number;
 }
 
-interface fileInfo {
+export interface fileInfo {
     pages: pathInfo[][];
 }
 

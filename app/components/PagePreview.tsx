@@ -1,7 +1,6 @@
-import { File, Paths } from 'expo-file-system/next';
-import { useEffect, useState } from "react";
 import { View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { pathInfo } from '../types';
 
 interface previewProps {
   paths: pathInfo[];
@@ -15,7 +14,7 @@ export default function PagePreview({ paths }: previewProps) {
         className="absolute"
         viewBox="0 0 500 500"
       >
-        {paths.map((path: pathInfo, index: number) => (
+        {paths?.map((path: pathInfo, index: number) => (
           <Path
             key={index}
             d={path.path}
