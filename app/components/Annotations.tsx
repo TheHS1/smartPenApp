@@ -253,7 +253,7 @@ export default function Annotations({ savePathFile, paths, setPaths }: annotatio
               <Path
                 path={helloWorld}
                 style="stroke"
-                strokeWidth={3}
+                strokeWidth={1}
                 strokeCap="round"
                 color="black"
               />
