@@ -1,5 +1,5 @@
 import { Text, TouchableOpacity, View } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { FlatList, GestureHandlerRootView } from "react-native-gesture-handler";
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import PagePreview from "./PagePreview";
 import Reanimated, { SharedValue, useAnimatedStyle } from "react-native-reanimated";
@@ -40,34 +40,43 @@ export default function PageSelector({ fInfo, addPage, changePage, deletePage }:
     );
   }
 
+  interface itemProps {
+    index: number;
+    page: pathInfo[];
+  }
+
+  const Item = ({ index, page }: itemProps) => (
+    <ReanimatedSwipeable
+      onSwipeableOpen={() => closeRow(index)}
+      ref={ref => (row[index] = ref)}
+      friction={2}
+      leftThreshold={0}
+      enableTrackpadTwoFingerGesture
+      renderRightActions={(progress, drag) => RightAction(progress, drag, index)}
+      containerStyle={{ flexDirection: "row", flex: 1, height: 150, padding: 4 }}
+      childrenContainerStyle={{ flex: 1 }}
+    >
+      <View className="flex flex-row">
+        <Text className="p-1">{index + 1}</Text>
+        <TouchableOpacity
+          className="flex-1 border bg-white"
+          onPress={() => changePage(index)}
+        >
+          <PagePreview paths={page} />
+        </TouchableOpacity>
+      </View>
+    </ReanimatedSwipeable>
+  );
+
   return (
     <View className="w-2/6 h-full flex-initial flex bg-gray-100">
 
       <GestureHandlerRootView>
-        {fInfo.pages.map((page: pathInfo[], index) => (
-          <View className="flex-1 m-1 flex flex-row" key={index}>
-            <ReanimatedSwipeable
-              onSwipeableOpen={() => closeRow(index)}
-              ref={ref => (row[index] = ref)}
-              friction={2}
-              leftThreshold={0}
-              enableTrackpadTwoFingerGesture
-              renderRightActions={(progress, drag) => RightAction(progress, drag, index)}
-              containerStyle={{ flexDirection: "row", flex: 1 }}
-              childrenContainerStyle={{ flex: 1 }}
-            >
-              <View className="flex flex-row">
-                <Text className="p-1">{index + 1}</Text>
-                <TouchableOpacity
-                  className="flex-1 border bg-white"
-                  onPress={() => changePage(index)}
-                >
-                  <PagePreview paths={page} />
-                </TouchableOpacity>
-              </View>
-            </ReanimatedSwipeable>
-          </View>
-        ))}
+        <FlatList
+          data={fInfo.pages}
+          renderItem={({ item, index }) => <Item index={index} page={item} />}
+          className="flex flex-1"
+        />
       </GestureHandlerRootView>
 
       <TouchableOpacity className="flex-initial" onPress={addPage}>
