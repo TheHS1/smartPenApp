@@ -49,6 +49,12 @@ export default function Documents() {
     navigation.navigate('Editor', { fileName: file });
   }
 
+  const deleteFile = async (file: string) => {
+    const newMap = new Map(documents);
+    newMap.delete(file);
+    setDocuments(newMap);
+  }
+
   // set button action for menu button in header
   useEffect(() => {
     navigation.setOptions({
@@ -71,11 +77,18 @@ export default function Documents() {
       className="h-40 w-full m-2 p-1 flex bg-gray-100"
       style={{ flexBasis: '30%' }} // Ensures 3 items per row
     >
-      <View className="flex-1 w-full border bg-white">
+      <View className="relative flex-1 w-full border bg-white">
         <PagePreview paths={fInfo.pages[0]} />
+      </View >
+      <View className="flex flex-row">
+        <Text className="text-xs flex-initial font-bold">{title}</Text>
+        <TouchableOpacity
+          onPress={() => deleteFile(title)}
+        >
+          <Ionicons name="trash-outline" size={28} color="red" />
+        </TouchableOpacity>
       </View>
-      <Text className="text-xs flex-initial font-bold">{title}</Text>
-    </TouchableOpacity>
+    </TouchableOpacity >
   );
 
   return (
