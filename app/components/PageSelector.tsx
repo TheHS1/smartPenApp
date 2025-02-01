@@ -76,6 +76,7 @@ export default function PageSelector({ fInfo, addPage, changePage, deletePage }:
           data={fInfo.pages}
           renderItem={({ item, index }) => <Item index={index} page={item} />}
           className="flex flex-1"
+          keyExtractor={(_, index) => String(index)}
         />
       </GestureHandlerRootView>
 
