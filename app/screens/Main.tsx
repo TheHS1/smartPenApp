@@ -152,9 +152,8 @@ export default function Main({ route }) {
                 deletePage={deletePage}
               />
             )}
-            <Annotations paths={paths} setPaths={setPaths} savePathFile={savePathFile} />
+            <Annotations paths={paths} data={data} setPaths={setPaths} savePathFile={savePathFile} />
           </View>
-          <Text className="flex-initial">{data}</Text>
         </View>
       ) : (
         <View>
