@@ -17,15 +17,15 @@ interface BluetoothLowEnergyApi {
     allDevices: Device[];
     connectToDevice: (deviceId: Device) => Promise<void>;
     connectedDevice: Device | null;
-    data: number;
-    disconnectFromDevice() : void;
+    data: string;
+    disconnectFromDevice(): void;
 }
 
 export default function useBLE(): BluetoothLowEnergyApi {
     const bleManager = useMemo(() => new BleManager(), []);
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-    const [data, setData] = useState<number>(-1);
+    const [data, setData] = useState<string>("");
 
     const requestAndroid31Permissions = async () => {
         const bluetoothScanPermission = await PermissionsAndroid.request(
@@ -61,8 +61,8 @@ export default function useBLE(): BluetoothLowEnergyApi {
     };
 
     const requestPermissions = async () => {
-        if(Platform.OS === "android") {
-            if((ExpoDevice.platformApiLevel ?? -1) < 31) {
+        if (Platform.OS === "android") {
+            if ((ExpoDevice.platformApiLevel ?? -1) < 31) {
                 const granted = await PermissionsAndroid.request(
                     PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
                     {
@@ -86,20 +86,20 @@ export default function useBLE(): BluetoothLowEnergyApi {
         devices.findIndex((device) => nextDevice.id === device.id) > -1;
 
 
-  const scanForPeripherals = () =>
-    bleManager.startDeviceScan(null, null, (error, device) => {
-      if (error) {
-        console.log(error);
-      }
-      if (device && device.name?.includes(deviceName)) {
-        setAllDevices((prevState: Device[]) => {
-          if (!isDuplicateDevice(prevState, device)) {
-            return [...prevState, device];
-          }
-          return prevState;
+    const scanForPeripherals = () =>
+        bleManager.startDeviceScan(null, null, (error, device) => {
+            if (error) {
+                console.log(error);
+            }
+            if (device && device.name?.includes(deviceName)) {
+                setAllDevices((prevState: Device[]) => {
+                    if (!isDuplicateDevice(prevState, device)) {
+                        return [...prevState, device];
+                    }
+                    return prevState;
+                });
+            }
         });
-      }
-    });
 
     const connectToDevice = async (device: Device) => {
         try {
@@ -111,14 +111,14 @@ export default function useBLE(): BluetoothLowEnergyApi {
         } catch (e) {
             console.log("ERROR IN CONNECTION", e);
         }
-        
+
     }
 
     const onDataUpdate = (
         error: BleError | null,
         characeristic: Characteristic | null
     ) => {
-        if(error) {
+        if (error) {
             console.log(error);
             return
         } else if (!characeristic?.value) {
@@ -127,7 +127,8 @@ export default function useBLE(): BluetoothLowEnergyApi {
         }
 
         const rawData = base64.decode(characeristic.value)
-        setData(rawData)
+        console.log(rawData)
+        setData((oldData) => oldData + rawData)
     }
 
     async function sleep(ms: number): Promise<void> {
@@ -135,27 +136,27 @@ export default function useBLE(): BluetoothLowEnergyApi {
     }
 
     const startStreamingData = async (device: Device) => {
-        while(true) {
-            if(device) {
-                const readCharacteristic = await device.readCharacteristicForService(DATA_UUID, DATA_CHARACTERISTIC);
-                const rawData = base64.decode(readCharacteristic.value)
-                setData(rawData)
-                await sleep(10);
-            }
-        }
-        // if(device) {
-        //     device.monitorCharacteristicForService(
-        //         DATA_UUID, DATA_CHARACTERISTIC, onDataUpdate);
-        // } else {
-        //     console.log("No Device Connected")
+        // while(true) {
+        //     if(device) {
+        //         const readCharacteristic = await device.readCharacteristicForService(DATA_UUID, DATA_CHARACTERISTIC);
+        //         const rawData = base64.decode(readCharacteristic.value)
+        //         setData(rawData)
+        //         await sleep(10);
+        //     }
         // }
+        if (device) {
+            device.monitorCharacteristicForService(
+                DATA_UUID, DATA_CHARACTERISTIC, onDataUpdate);
+        } else {
+            console.log("No Device Connected")
+        }
     }
 
     const disconnectFromDevice = () => {
-        if(connectedDevice) {
+        if (connectedDevice) {
             bleManager.cancelDeviceConnection(connectedDevice.id)
             setConnectedDevice(null);
-            setData(-1);
+            setData("");
         }
     }
 

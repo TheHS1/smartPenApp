@@ -13,12 +13,13 @@ configureReanimatedLogger({
 });
 
 interface annotationProps {
-  savePathFile: () => void;
+  data: string;
   paths: pathInfo[];
+  savePathFile: () => void;
   setPaths: (prevPath: pathInfo[]) => void;
 }
 
-export default function Annotations({ savePathFile, paths, setPaths }: annotationProps) {
+export default function Annotations({ data, paths, savePathFile, setPaths }: annotationProps) {
   enum actions {
     addPath,
     deletePath,
@@ -251,7 +252,7 @@ export default function Annotations({ savePathFile, paths, setPaths }: annotatio
                 />
               )}
               <Path
-                path={helloWorld}
+                path={Skia.Path.MakeFromSVGString(data.substr(0, data.lastIndexOf(" "))) as SkPath}
                 style="stroke"
                 strokeWidth={1}
                 strokeCap="round"
