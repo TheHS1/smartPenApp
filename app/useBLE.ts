@@ -136,14 +136,6 @@ export default function useBLE(): BluetoothLowEnergyApi {
     }
 
     const startStreamingData = async (device: Device) => {
-        // while(true) {
-        //     if(device) {
-        //         const readCharacteristic = await device.readCharacteristicForService(DATA_UUID, DATA_CHARACTERISTIC);
-        //         const rawData = base64.decode(readCharacteristic.value)
-        //         setData(rawData)
-        //         await sleep(10);
-        //     }
-        // }
         if (device) {
             device.monitorCharacteristicForService(
                 DATA_UUID, DATA_CHARACTERISTIC, onDataUpdate);
