@@ -11,6 +11,7 @@ import useBLE from '../useBLE'
 import PageSelector from "../components/PageSelector";
 import { fileInfo, pathInfo } from "../types";
 import { getFiles } from "../utils";
+import PluginsModal from "./PluginsModal";
 
 export default function Main({ route }) {
   const { fileName } = route.params;
@@ -24,12 +25,19 @@ export default function Main({ route }) {
   const [bypass, setBypass] = useState<boolean>(false);
   const [pageNum, setPageNum] = useState<number>(0);
 
+  const [showPlugin, setShowPlugin] = useState<boolean>(false);
+
   // set button action for menu button in header
   useEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
         <TouchableOpacity onPress={() => setShowPageSelector(!showPageSelector)}>
           <Ionicons name="menu" size={36} color="blue" />
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity onPress={() => setShowPlugin(true)}>
+          <Ionicons name="extension-puzzle-outline" size={36} color="blue" />
         </TouchableOpacity>
       ),
     });
@@ -68,7 +76,7 @@ export default function Main({ route }) {
     data,
     disconnectFromDevice
   } = useBLE();
-  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [isDevModalVisible, setIsDevModalVisible] = useState<boolean>(false);
 
   const scanForDevices = async () => {
     const isPermissionsEnabled = await requestPermissions();
@@ -87,13 +95,13 @@ export default function Main({ route }) {
     }
   }
 
-  const hideModal = () => {
-    setIsModalVisible(false);
+  const hideDevModal = () => {
+    setIsDevModalVisible(false);
   }
 
-  const openModal = async () => {
+  const openDevModal = async () => {
     scanForDevices();
-    setIsModalVisible(true);
+    setIsDevModalVisible(true);
   }
 
   const addPage = async () => {
@@ -154,12 +162,42 @@ export default function Main({ route }) {
             )}
             <Annotations paths={paths} data={data} setPaths={setPaths} savePathFile={savePathFile} />
           </View>
+          <PluginsModal
+            closeModal={() => setShowPlugin(false)}
+            visible={showPlugin}
+            plugins={
+              [{
+                title: "Latex Plugin",
+                description: "This plugin converts the text that was written by hand into latex code by expanding snippets and then providing a PDF file to to the user. Please check the documentation for more information",
+                iconPath: "string",
+                enabled: true,
+              },
+              {
+                title: "Sentiment Analysis",
+                description: "string",
+                iconPath: "string",
+                enabled: true,
+              },
+              {
+                title: "Latex Plugin",
+                description: "This plugin converts the text that was written by hand into latex code by expanding snippets and then providing a PDF file to to the user. Please check the documentation for more information",
+                iconPath: "string",
+                enabled: true,
+              },
+              {
+                title: "Latex Plugin",
+                description: "This plugin converts the text that was written by hand into latex code by expanding snippets and then providing a PDF file to to the user. Please check the documentation for more information",
+                iconPath: "string",
+                enabled: false,
+              }
+              ]}
+          />
         </View>
       ) : (
         <View>
           <Text className="text-center text-lg">Please connect your smart pen device</Text>
           <TouchableOpacity
-            onPress={openModal}
+            onPress={openDevModal}
           >
             <Text className="text-center bg-blue-500 p-5 m-10 text-white">
               Connect
@@ -167,8 +205,8 @@ export default function Main({ route }) {
           </TouchableOpacity>
           <Button onPress={() => setBypass(true)} title="Skip" />
           <DeviceModal
-            closeModal={hideModal}
-            visible={isModalVisible}
+            closeModal={hideDevModal}
+            visible={isDevModalVisible}
             connectToPeripheral={connectToPeripheral}
             devices={allDevices}
           />
