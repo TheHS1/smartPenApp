@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Path, Text } from "react-native-svg";
 import { pathInfo } from '../types';
 
 interface previewProps {
@@ -16,15 +16,28 @@ export default function PagePreview({ paths }: previewProps) {
         viewBox="0 0 500 500"
       >
         {paths?.map((path: pathInfo, index: number) => (
-          <Path
-            key={index}
-            d={path.path}
-            stroke={path.erase ? 'white' : path.color}
-            fill={'transparent'}
-            strokeWidth={path.strokeSize}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
+          !path.isText ? (
+            <Path
+              key={index}
+              d={path.path}
+              stroke={path.erase ? 'white' : path.color}
+              fill={'transparent'}
+              strokeWidth={path.strokeSize}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          ) : (
+            <Text
+              key={index}
+              fill="none"
+              stroke="black"
+              fontSize="20"
+              x="100"
+              y="20"
+              textAnchor="middle">
+              {path.path}
+            </Text>
+          )
         ))}
         <Path
           d={helloWorld}

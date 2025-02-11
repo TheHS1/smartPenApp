@@ -3,6 +3,7 @@ export interface pathInfo {
     erase: boolean;
     color: string;
     strokeSize: number;
+    isText: boolean;
 }
 
 export interface fileInfo {

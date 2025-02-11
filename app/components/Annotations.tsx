@@ -37,6 +37,7 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
   const [showAnnotationState, setShowAnnotationState] = useState(true);
   const [erase, setErase] = useState<boolean>(false);
   const [color, setColor] = useState<string>('red');
+  const [isText, setIsText] = useState<boolean>(false);
   const [strokeSize, setStrokeSize] = useState<number>(1);
 
   const curDrawn = useSharedValue<string>("");
@@ -74,7 +75,11 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
 
   const savePath = () => {
     const pathSave = curDrawn.value;
-    setPaths([...paths, { path: pathSave, erase: erase, color: color, strokeSize: strokeSize }]);
+    if (isText) {
+      setPaths([...paths, { path: text, erase: erase, color: color, strokeSize: strokeSize, isText: isText }]);
+    } else {
+      setPaths([...paths, { path: pathSave, erase: erase, color: color, strokeSize: strokeSize, isText: isText }]);
+    }
     setHist((prevHist) => [...prevHist, { action: actions.addPath }]);
     curDrawn.value = "";
   }
@@ -195,10 +200,11 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
   const inputRef = useRef(null);
 
   const focusInput = () => {
-    if (inputRef.current) {
+    if (isText && inputRef.current) {
       inputRef.current.focus();
     }
   }
+
   const tap = Gesture.Tap().onEnd((evt) => {
     runOnJS(focusInput)();
   });
@@ -226,23 +232,25 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
     color: Skia.Color("black"),
     fontSize: 50,
   };
-  const paragraph =
-    Skia.ParagraphBuilder.Make()
+  const makeParagraph = (para: string) => {
+    return Skia.ParagraphBuilder.Make()
       .pushStyle(textStyle)
-      .addText(text)
+      .addText(para)
       .build();
-
+  }
 
   return (
     <View className="flex-1 flex border-blue-500 border-4 w-full h-full">
       <AnnotationTools
         strokeSize={strokeSize}
         erase={erase}
+        text={isText}
         showAnnotation={showAnnotationState}
         color={color}
         toggleShowPicker={toggleShowPicker}
-        setStroke={setStroke}
         setErase={setErase}
+        setStroke={setStroke}
+        setText={setIsText}
         undoDraw={undoDraw}
         redoDraw={redoDraw}
         clearPath={clearPath}
@@ -257,27 +265,43 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
             <Group transform={transform}>
               {showAnnotation.value && (
                 paths.map((path: pathInfo, index: number) => (
-                  <Path
-                    key={index}
-                    path={Skia.Path.MakeFromSVGString(path.path) as SkPath}
-                    style="stroke"
-                    strokeWidth={path.strokeSize}
-                    strokeCap={"round"}
-                    color={path.erase ? 'white' : path.color}
-                  />
+                  !path.isText ? (
+                    <Path
+                      key={index}
+                      path={Skia.Path.MakeFromSVGString(path.path) as SkPath}
+                      style="stroke"
+                      strokeWidth={path.strokeSize}
+                      strokeCap={"round"}
+                      color={path.erase ? 'white' : path.color}
+                    />
+                  ) : (
+                    <Paragraph
+                      key={index}
+                      paragraph={makeParagraph(path.path)}
+                      x={0}
+                      y={0}
+                      width={300}
+                    />
+                  )
                 ))
               )}
               {showAnnotation.value && (
-                <Paragraph paragraph={paragraph} x={0} y={0} width={300} />
-              )}
-              {showAnnotation.value && (
-                <Path
-                  path={Skia.Path.MakeFromSVGString(curDrawn.value) as SkPath}
-                  style="stroke"
-                  strokeWidth={strokeSize}
-                  strokeCap="round"
-                  color={erase ? 'white' : color}
-                />
+                isText ? (
+                  <Paragraph
+                    paragraph={makeParagraph(text)}
+                    x={0}
+                    y={0}
+                    width={300}
+                  />
+                ) : (
+                  <Path
+                    path={Skia.Path.MakeFromSVGString(curDrawn.value) as SkPath}
+                    style="stroke"
+                    strokeWidth={strokeSize}
+                    strokeCap="round"
+                    color={erase ? 'white' : color}
+                  />
+                )
               )}
               <Path
                 path={Skia.Path.MakeFromSVGString(data.substr(0, data.lastIndexOf(" "))) as SkPath}
@@ -311,9 +335,9 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
       <TextInput
         ref={inputRef}
         onChangeText={setText}
+        onBlur={savePath}
         value={text}
         className="h-0 w-0"
-        multiline={true}
       />
     </View >
   )
