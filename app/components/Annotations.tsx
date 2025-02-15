@@ -35,11 +35,14 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const [redoHist, setRedoHist] = useState<history[]>([]);
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [showAnnotationState, setShowAnnotationState] = useState(true);
-  const [erase, setErase] = useState<boolean>(false);
   const [color, setColor] = useState<string>('red');
-  const [isText, setIsText] = useState<boolean>(false);
   const [strokeSize, setStrokeSize] = useState<number>(1);
 
+  const [isText, setIsText] = useState<boolean>(false);
+  const [x, setX] = useState<number>(0);
+  const [y, setY] = useState<number>(0);
+
+  const [erase, setErase] = useState<boolean>(false);
   const curDrawn = useSharedValue<string>("");
   const selectedColor = useSharedValue('red');
   const showAnnotation = useSharedValue<boolean>(true);
@@ -78,12 +81,11 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     if (!isText) {
       setAnnotations([...annotations, { color: color, strokeSize: strokeSize, path: annotationSave, erase: erase } as pathInfo]);
     } else {
-      console.log({ text: text, x: 0, y: 0, color: color, strokeSize: strokeSize })
-      setAnnotations([...annotations, { text: text, x: 0, y: 0, color: color, strokeSize: strokeSize } as textInfo]);
+      setAnnotations([...annotations, { text: text, x: x, y: y, color: color, strokeSize: strokeSize } as textInfo]);
     }
     setHist((prevHist) => [...prevHist, { action: actions.addAnnotation }]);
     curDrawn.value = "";
-    setText("")
+    setText("");
   }
 
   const clearAnnotation = () => {
@@ -201,14 +203,16 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const inputRef = useRef(null);
 
-  const focusInput = () => {
+  const focusInput = (xVal: number, yVal: number) => {
     if (isText && inputRef.current) {
       inputRef.current.focus();
+      setX(Math.round((xVal - translateX.value) / scale.value));
+      setY(Math.round((yVal - translateY.value) / scale.value));
     }
   }
 
   const tap = Gesture.Tap().onEnd((evt) => {
-    runOnJS(focusInput)();
+    runOnJS(focusInput)(evt.x, evt.y);
   });
 
   const composed = Gesture.Race(drawGesture, movement, tap)
@@ -229,7 +233,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   })
 
-  const [text, setText] = useState<string>("joe");
+  const [text, setText] = useState<string>("");
   const textStyle = {
     color: Skia.Color("black"),
     fontSize: 50,
@@ -291,8 +295,8 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
                 isText ? (
                   <Paragraph
                     paragraph={makeParagraph(text)}
-                    x={0}
-                    y={0}
+                    x={x}
+                    y={y}
                     width={300}
                   />
                 ) : (
