@@ -5,7 +5,7 @@ import ColorPicker, { Panel1, Swatches, Preview, HueSlider, returnedResults } fr
 import { ReanimatedLogLevel, configureReanimatedLogger, runOnJS, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import AnnotationTools from "./AnnotationTools";
 import { Canvas, Group, Path, SkPath, Skia, Paragraph } from "@shopify/react-native-skia";
-import { pathInfo } from "../types";
+import { annotation, pathInfo, textInfo } from "../types";
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -14,21 +14,21 @@ configureReanimatedLogger({
 
 interface annotationProps {
   data: string;
-  paths: pathInfo[];
-  savePathFile: () => void;
-  setPaths: (prevPath: pathInfo[]) => void;
+  annotations: annotation[];
+  saveAnnotations: () => void;
+  setAnnotations: (prevAnnotation: annotation[]) => void;
 }
 
-export default function Annotations({ data, paths, savePathFile, setPaths }: annotationProps) {
+export default function Annotations({ data, annotations, saveAnnotations, setAnnotations }: annotationProps) {
   enum actions {
-    addPath,
-    deletePath,
+    addAnnotation,
+    deleteAnnotation,
     clear
   }
 
   interface history {
     action: actions;
-    paths?: pathInfo[];
+    annotations?: annotation[];
   }
 
   const [hist, setHist] = useState<history[]>([]);
@@ -53,10 +53,10 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
 
   const maxStroke = 11;
 
-  // Save paths to file when they're changed
+  // Save annotations to file when they're changed
   useEffect(() => {
-    savePathFile();
-  }, [paths])
+    saveAnnotations();
+  }, [annotations])
 
   const updatePath = (x: number, y: number) => {
     'worklet';
@@ -73,47 +73,49 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
     curDrawn.value = curPath;
   };
 
-  const savePath = () => {
-    const pathSave = curDrawn.value;
-    if (isText) {
-      setPaths([...paths, { path: text, erase: erase, color: color, strokeSize: strokeSize, isText: isText }]);
+  const saveAnnotation = () => {
+    const annotationSave = curDrawn.value;
+    if (!isText) {
+      setAnnotations([...annotations, { color: color, strokeSize: strokeSize, path: annotationSave, erase: erase } as pathInfo]);
     } else {
-      setPaths([...paths, { path: pathSave, erase: erase, color: color, strokeSize: strokeSize, isText: isText }]);
+      console.log({ text: text, x: 0, y: 0, color: color, strokeSize: strokeSize })
+      setAnnotations([...annotations, { text: text, x: 0, y: 0, color: color, strokeSize: strokeSize } as textInfo]);
     }
-    setHist((prevHist) => [...prevHist, { action: actions.addPath }]);
+    setHist((prevHist) => [...prevHist, { action: actions.addAnnotation }]);
     curDrawn.value = "";
+    setText("")
   }
 
-  const clearPath = () => {
-    setHist((prevHist) => [...prevHist, { action: actions.clear, paths: paths }]);
-    setPaths([]);
+  const clearAnnotation = () => {
+    setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations }]);
+    setAnnotations([]);
     setErase(false);
     setRedoHist([]);
     curDrawn.value = "";
   }
 
-  const undoDraw = () => {
+  const undoAnnotation = () => {
     const curHist = [...hist];
     const last = curHist.pop();
     if (last === undefined)
       return;
 
     switch (last.action) {
-      case actions.addPath:
-        const curPaths = [...paths];
-        const path = curPaths.pop();
-        if (path === undefined)
+      case actions.addAnnotation:
+        const curAnnotations = [...annotations];
+        const annotation = curAnnotations.pop();
+        if (annotation === undefined)
           return;
 
-        setPaths(curPaths);
-        setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.deletePath, paths: [path] }]);
+        setAnnotations(curAnnotations);
+        setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.deleteAnnotation, annotations: [annotation] }]);
 
         break;
       case actions.clear:
-        if (!last.paths)
+        if (!last.annotations)
           return;
         setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.clear }]);
-        setPaths(last.paths.slice());
+        setAnnotations(last.annotations.slice());
         break;
     }
 
@@ -127,17 +129,17 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
       return;
 
     switch (first.action) {
-      case actions.deletePath:
-        if (first.paths === undefined)
+      case actions.deleteAnnotation:
+        if (first.annotations === undefined)
           return;
 
-        const addPath = first.paths[0];
-        setPaths([...paths, addPath]);
-        setHist((prevHist) => [...prevHist, { action: actions.addPath }]);
+        const addAnnotation = first.annotations[0];
+        setAnnotations([...annotations, addAnnotation]);
+        setHist((prevHist) => [...prevHist, { action: actions.addAnnotation }]);
         break;
       case actions.clear:
-        setHist((prevHist) => [...prevHist, { action: actions.clear, paths: paths.slice() }]);
-        setPaths([]);
+        setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations.slice() }]);
+        setAnnotations([]);
         break;
     }
 
@@ -192,7 +194,7 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
       updatePath(e.x, e.y);
     })
     .onEnd(e => {
-      runOnJS(savePath)();
+      runOnJS(saveAnnotation)();
     })
 
   const movement = Gesture.Simultaneous(panGesture, pinchGesture)
@@ -251,9 +253,9 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
         setErase={setErase}
         setStroke={setStroke}
         setText={setIsText}
-        undoDraw={undoDraw}
+        undoDraw={undoAnnotation}
         redoDraw={redoDraw}
-        clearPath={clearPath}
+        clearPath={clearAnnotation}
         toggleShowAnnotation={toggleShowAnnotation}
       />
       <GestureHandlerRootView>
@@ -264,22 +266,22 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
           >
             <Group transform={transform}>
               {showAnnotation.value && (
-                paths.map((path: pathInfo, index: number) => (
-                  !path.isText ? (
+                annotations.map((annotation: annotation, index: number) => (
+                  !('text' in annotation) ? (
                     <Path
                       key={index}
-                      path={Skia.Path.MakeFromSVGString(path.path) as SkPath}
+                      path={Skia.Path.MakeFromSVGString((annotation as pathInfo).path) as SkPath}
                       style="stroke"
-                      strokeWidth={path.strokeSize}
+                      strokeWidth={annotation.strokeSize}
                       strokeCap={"round"}
-                      color={path.erase ? 'white' : path.color}
+                      color={(annotation as pathInfo).erase ? 'white' : annotation.color}
                     />
                   ) : (
                     <Paragraph
                       key={index}
-                      paragraph={makeParagraph(path.path)}
-                      x={0}
-                      y={0}
+                      paragraph={makeParagraph((annotation as textInfo).text)}
+                      x={(annotation as textInfo).x}
+                      y={(annotation as textInfo).y}
                       width={300}
                     />
                   )
@@ -335,7 +337,7 @@ export default function Annotations({ data, paths, savePathFile, setPaths }: ann
       <TextInput
         ref={inputRef}
         onChangeText={setText}
-        onBlur={savePath}
+        onBlur={saveAnnotation}
         value={text}
         className="h-0 w-0"
       />

@@ -9,7 +9,7 @@ import Annotations from "../components/Annotations";
 import DeviceModal from "./DeviceConnectionModal";
 import useBLE from '../useBLE'
 import PageSelector from "../components/PageSelector";
-import { fileInfo, pathInfo } from "../types";
+import { fileInfo, annotation, } from "../types";
 import { getFiles } from "../utils";
 
 export default function Main({ route }) {
@@ -18,7 +18,7 @@ export default function Main({ route }) {
   const navigation = useNavigation();
 
   const [fInfo, setFileInfo] = useState<fileInfo>({ pages: [] });
-  const [paths, setPaths] = useState<pathInfo[]>([]);
+  const [annotations, setAnnotations] = useState<annotation[]>([]);
 
   const [showPageSelector, setShowPageSelector] = useState<boolean>(false);
   const [bypass, setBypass] = useState<boolean>(false);
@@ -40,7 +40,7 @@ export default function Main({ route }) {
       .then((files: Map<string, fileInfo>) => {
         if (files.has(fileName)) {
           setFileInfo(files.get(fileName) ?? { pages: [] })
-          setPaths(files.get(fileName)?.pages[0] ?? []);
+          setAnnotations(files.get(fileName)?.pages[0] ?? []);
         }
       })
       .catch(console.error);
@@ -104,20 +104,20 @@ export default function Main({ route }) {
 
   const changePage = (index: number) => {
     setPageNum(index);
-    setPaths(fInfo.pages[index]);
+    setAnnotations(fInfo.pages[index]);
   }
 
   const deletePage = async (ind: number) => {
-    const pages: pathInfo[][] = fInfo.pages;
+    const pages: annotation[][] = fInfo.pages;
     pages.splice(ind, 1);
 
     setFileInfo({ pages: pages });
     saveDocument();
   }
 
-  const savePathFile = async () => {
+  const saveAnnotations = async () => {
     const newDoc = fInfo;
-    newDoc.pages[pageNum] = paths;
+    newDoc.pages[pageNum] = annotations;
     setFileInfo(newDoc);
     saveDocument();
   }
@@ -152,7 +152,7 @@ export default function Main({ route }) {
                 deletePage={deletePage}
               />
             )}
-            <Annotations paths={paths} data={data} setPaths={setPaths} savePathFile={savePathFile} />
+            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} />
           </View>
         </View>
       ) : (

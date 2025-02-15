@@ -1,13 +1,21 @@
-export interface pathInfo {
-    path: string;
-    erase: boolean;
+export interface annotation {
     color: string;
     strokeSize: number;
-    isText: boolean;
+}
+
+export interface textInfo extends annotation {
+    text: string;
+    x: number;
+    y: number;
+}
+
+export interface pathInfo extends annotation {
+    path: string;
+    erase: boolean;
 }
 
 export interface fileInfo {
-    pages: pathInfo[][];
+    pages: annotation[][];
 }
 
 
