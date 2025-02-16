@@ -81,7 +81,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     if (!isText) {
       setAnnotations([...annotations, { color: color, strokeSize: strokeSize, path: annotationSave, erase: erase } as pathInfo]);
     } else {
-      setAnnotations([...annotations, { text: text, x: x, y: y, color: color, strokeSize: strokeSize } as textInfo]);
+      setAnnotations([...annotations, { text: text, x: x, y: y, color: color, strokeSize: strokeSize * 10 } as textInfo]);
     }
     setHist((prevHist) => [...prevHist, { action: actions.addAnnotation }]);
     curDrawn.value = "";
@@ -206,8 +206,8 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const focusInput = (xVal: number, yVal: number) => {
     if (isText && inputRef.current) {
       inputRef.current.focus();
-      setX(Math.round((xVal - translateX.value) / scale.value));
-      setY(Math.round((yVal - translateY.value) / scale.value));
+      setX((xVal - translateX.value) / scale.value);
+      setY((yVal - translateY.value) / scale.value);
     }
   }
 
@@ -234,11 +234,11 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   })
 
   const [text, setText] = useState<string>("");
-  const textStyle = {
-    color: Skia.Color("black"),
-    fontSize: 50,
-  };
-  const makeParagraph = (para: string) => {
+  const makeParagraph = (para: string, color: string, size: number) => {
+    const textStyle = {
+      color: Skia.Color(color),
+      fontSize: size,
+    };
     return Skia.ParagraphBuilder.Make()
       .pushStyle(textStyle)
       .addText(para)
@@ -274,16 +274,16 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
                   !('text' in annotation) ? (
                     <Path
                       key={index}
-                      path={Skia.Path.MakeFromSVGString((annotation as pathInfo).path) as SkPath}
+                      path={(annotation as pathInfo).path}
                       style="stroke"
                       strokeWidth={annotation.strokeSize}
                       strokeCap={"round"}
+                      strokeJoin={"round"}
                       color={(annotation as pathInfo).erase ? 'white' : annotation.color}
                     />
                   ) : (
                     <Paragraph
-                      key={index}
-                      paragraph={makeParagraph((annotation as textInfo).text)}
+                      paragraph={makeParagraph((annotation as textInfo).text, (annotation as textInfo).color, annotation.strokeSize)}
                       x={(annotation as textInfo).x}
                       y={(annotation as textInfo).y}
                       width={300}
@@ -294,7 +294,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
               {showAnnotation.value && (
                 isText ? (
                   <Paragraph
-                    paragraph={makeParagraph(text)}
+                    paragraph={makeParagraph(text, color, strokeSize * 10)}
                     x={x}
                     y={y}
                     width={300}
