@@ -78,9 +78,9 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const saveAnnotation = () => {
     const annotationSave = curDrawn.value;
-    if (!isText) {
+    if (!isText && annotationSave != "") {
       setAnnotations([...annotations, { color: color, strokeSize: strokeSize, path: annotationSave, erase: erase } as pathInfo]);
-    } else {
+    } else if (text != "") {
       setAnnotations([...annotations, { text: text, x: x, y: y, color: color, strokeSize: strokeSize * 10 } as textInfo]);
     }
     setHist((prevHist) => [...prevHist, { action: actions.addAnnotation }]);
