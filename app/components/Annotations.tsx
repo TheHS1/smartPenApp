@@ -207,7 +207,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const movement = Gesture.Simultaneous(panGesture, pinchGesture)
 
-  const inputRef = useRef(null);
+  const inputRef = useRef<TextInput>(null);
 
   const focusInput = (xVal: number, yVal: number) => {
     if (isText && inputRef.current) {
