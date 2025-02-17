@@ -20,6 +20,12 @@ interface annotationProps {
 }
 
 export default function Annotations({ data, annotations, saveAnnotations, setAnnotations }: annotationProps) {
+  // Save annotations to file when they're changed
+  useEffect(() => {
+    saveAnnotations();
+  }, [annotations])
+
+  // History
   enum actions {
     addAnnotation,
     deleteAnnotation,
@@ -33,33 +39,33 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const [hist, setHist] = useState<history[]>([]);
   const [redoHist, setRedoHist] = useState<history[]>([]);
-  const [showPicker, setShowPicker] = useState<boolean>(false);
-  const [showAnnotationState, setShowAnnotationState] = useState(true);
-  const [color, setColor] = useState<string>('red');
-  const [strokeSize, setStrokeSize] = useState<number>(1);
 
+  // Controls
+  const maxStroke = 11;
+  const [strokeSize, setStrokeSize] = useState<number>(1);
   const [isText, setIsText] = useState<boolean>(false);
+  const [showAnnotationState, setShowAnnotationState] = useState(true);
+  const [showPicker, setShowPicker] = useState<boolean>(false);
+  const selectedColor = useSharedValue('red');
+  const [color, setColor] = useState<string>('red');
+
+  // Text Data
   const [x, setX] = useState<number>(0);
   const [y, setY] = useState<number>(0);
+  const [text, setText] = useState<string>("");
 
+  // Path Data
   const [erase, setErase] = useState<boolean>(false);
   const curDrawn = useSharedValue<string>("");
-  const selectedColor = useSharedValue('red');
   const showAnnotation = useSharedValue<boolean>(true);
 
+  // Canvas Gesture Data
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
-
-  const maxStroke = 11;
-
-  // Save annotations to file when they're changed
-  useEffect(() => {
-    saveAnnotations();
-  }, [annotations])
 
   const updatePath = (x: number, y: number) => {
     'worklet';
@@ -206,8 +212,8 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const focusInput = (xVal: number, yVal: number) => {
     if (isText && inputRef.current) {
       inputRef.current.focus();
-      setX((xVal - translateX.value) / scale.value);
-      setY((yVal - translateY.value) / scale.value);
+      setX(Math.round(xVal - translateX.value) / scale.value);
+      setY(Math.round(yVal - translateY.value) / scale.value);
     }
   }
 
@@ -233,16 +239,81 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   })
 
-  const [text, setText] = useState<string>("");
-  const makeParagraph = (para: string, color: string, size: number) => {
-    const textStyle = {
-      color: Skia.Color(color),
-      fontSize: size,
-    };
-    return Skia.ParagraphBuilder.Make()
-      .pushStyle(textStyle)
-      .addText(para)
-      .build();
+  interface renAnnoProps {
+    annotation: annotation;
+  }
+
+  const RenderAnnotations = ({ annotation }: renAnnoProps) => {
+    if (!showAnnotation.value)
+      return;
+
+    if ('text' in annotation) {
+      const textAnno = annotation as textInfo;
+      return (<RenderText color={textAnno.color} size={textAnno.strokeSize} txt={textAnno.text} x={textAnno.x} y={textAnno.y} />)
+    }
+    const pathAnno = annotation as pathInfo;
+    return (<RenderPath path={pathAnno.path} size={pathAnno.strokeSize} erase={pathAnno.erase} color={pathAnno.color} />)
+  }
+
+  const RenderPreview = () => {
+    if (!showAnnotation.value)
+      return;
+
+    if (isText) {
+      return (<RenderText color={color} size={strokeSize * 10} txt={text} x={x} y={y} />);
+    }
+
+    return (<RenderPath path={curDrawn.value} size={strokeSize} erase={erase} color={color} />);
+  }
+
+  interface renTextProps {
+    color: string;
+    size: number;
+    txt: string;
+    x: number;
+    y: number
+  }
+
+  interface renPathProps {
+    path: string;
+    size: number;
+    erase: boolean;
+    color: string;
+  }
+
+  const RenderText = ({ color, size, txt, x, y }: renTextProps) => {
+
+    const makeParagraph = (para: string, color: string, size: number) => {
+      const textStyle = {
+        color: Skia.Color(color),
+        fontSize: size,
+      };
+      return Skia.ParagraphBuilder.Make()
+        .pushStyle(textStyle)
+        .addText(para)
+        .build();
+    }
+    return (
+      <Paragraph
+        paragraph={makeParagraph(txt, color, size)}
+        x={x}
+        y={y}
+        width={300}
+      />
+    )
+  }
+
+  const RenderPath = ({ path, size, erase, color }: renPathProps) => {
+    return (
+      <Path
+        path={path}
+        style="stroke"
+        strokeWidth={size}
+        strokeCap="round"
+        strokeJoin={"round"}
+        color={erase ? 'white' : color}
+      />
+    )
   }
 
   return (
@@ -269,47 +340,12 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
             className="absolute"
           >
             <Group transform={transform}>
-              {showAnnotation.value && (
-                annotations.map((annotation: annotation, index: number) => (
-                  !('text' in annotation) ? (
-                    <Path
-                      key={index}
-                      path={(annotation as pathInfo).path}
-                      style="stroke"
-                      strokeWidth={annotation.strokeSize}
-                      strokeCap={"round"}
-                      strokeJoin={"round"}
-                      color={(annotation as pathInfo).erase ? 'white' : annotation.color}
-                    />
-                  ) : (
-                    <Paragraph
-                      paragraph={makeParagraph((annotation as textInfo).text, (annotation as textInfo).color, annotation.strokeSize)}
-                      x={(annotation as textInfo).x}
-                      y={(annotation as textInfo).y}
-                      width={300}
-                    />
-                  )
-                ))
-              )}
-              {showAnnotation.value && (
-                isText ? (
-                  <Paragraph
-                    paragraph={makeParagraph(text, color, strokeSize * 10)}
-                    x={x}
-                    y={y}
-                    width={300}
-                  />
-                ) : (
-                  <Path
-                    path={Skia.Path.MakeFromSVGString(curDrawn.value) as SkPath}
-                    style="stroke"
-                    strokeWidth={strokeSize}
-                    strokeCap="round"
-                    color={erase ? 'white' : color}
-                  />
-                )
-              )}
-              <Path
+              {/* Show saved page strokes */}
+              {annotations.map((annotation: annotation, index: number) => (
+                <RenderAnnotations key={index} annotation={annotation} />
+              ))}
+              <RenderPreview />
+              <Path /* Display Annotation Data streamed from pen */
                 path={Skia.Path.MakeFromSVGString(data.substr(0, data.lastIndexOf(" "))) as SkPath}
                 style="stroke"
                 strokeWidth={1}
@@ -338,6 +374,8 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
           </View>
         </SafeAreaView>
       </Modal >
+
+      {/* Invisible text box to take text input */}
       <TextInput
         ref={inputRef}
         onChangeText={setText}

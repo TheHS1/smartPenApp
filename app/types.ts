@@ -17,5 +17,3 @@ export interface pathInfo extends annotation {
 export interface fileInfo {
     pages: annotation[][];
 }
-
-
