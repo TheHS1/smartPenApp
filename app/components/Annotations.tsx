@@ -12,6 +12,12 @@ configureReanimatedLogger({
   strict: false, // Reanimated runs in strict mode by default
 });
 
+export enum tools {
+  draw,
+  erase,
+  text
+}
+
 interface annotationProps {
   data: string;
   annotations: annotation[];
@@ -41,9 +47,9 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const [redoHist, setRedoHist] = useState<history[]>([]);
 
   // Controls
+
   const maxStroke = 11;
   const [strokeSize, setStrokeSize] = useState<number>(1);
-  const [isText, setIsText] = useState<boolean>(false);
   const [showAnnotationState, setShowAnnotationState] = useState(true);
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const selectedColor = useSharedValue('red');
@@ -55,7 +61,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const [text, setText] = useState<string>("");
 
   // Path Data
-  const [erase, setErase] = useState<boolean>(false);
+  const [selTool, setSelTool] = useState<tools>(tools.draw);
   const curDrawn = useSharedValue<string>("");
   const showAnnotation = useSharedValue<boolean>(true);
 
@@ -84,8 +90,8 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const saveAnnotation = () => {
     const annotationSave = curDrawn.value;
-    if (!isText && annotationSave != "") {
-      setAnnotations([...annotations, { color: color, strokeSize: strokeSize, path: annotationSave, erase: erase } as pathInfo]);
+    if ((selTool === tools.erase || selTool === tools.draw) && annotationSave != "") {
+      setAnnotations([...annotations, { color: color, strokeSize: strokeSize, path: annotationSave, erase: (selTool === tools.erase) } as pathInfo]);
     } else if (text != "") {
       setAnnotations([...annotations, { text: text, x: x, y: y, color: color, strokeSize: strokeSize * 10 } as textInfo]);
     }
@@ -97,7 +103,6 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const clearAnnotation = () => {
     setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations }]);
     setAnnotations([]);
-    setErase(false);
     setRedoHist([]);
     curDrawn.value = "";
   }
@@ -210,7 +215,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const inputRef = useRef<TextInput>(null);
 
   const focusInput = (xVal: number, yVal: number) => {
-    if (isText && inputRef.current) {
+    if (selTool === tools.text && inputRef.current) {
       inputRef.current.focus();
       setX(Math.round(xVal - translateX.value) / scale.value);
       setY(Math.round(yVal - translateY.value) / scale.value);
@@ -259,11 +264,11 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     if (!showAnnotation.value)
       return;
 
-    if (isText) {
+    if (selTool === tools.text) {
       return (<RenderText color={color} size={strokeSize * 10} txt={text} x={x} y={y} />);
     }
 
-    return (<RenderPath path={curDrawn.value} size={strokeSize} erase={erase} color={color} />);
+    return (<RenderPath path={curDrawn.value} size={strokeSize} erase={(selTool === tools.erase)} color={color} />);
   }
 
   interface renTextProps {
@@ -320,14 +325,12 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     <View className="flex-1 flex border-blue-500 border-4 w-full h-full">
       <AnnotationTools
         strokeSize={strokeSize}
-        erase={erase}
-        text={isText}
+        selTool={selTool}
         showAnnotation={showAnnotationState}
         color={color}
         toggleShowPicker={toggleShowPicker}
-        setErase={setErase}
         setStroke={setStroke}
-        setText={setIsText}
+        setSelTool={setSelTool}
         undoDraw={undoAnnotation}
         redoDraw={redoDraw}
         clearPath={clearAnnotation}
