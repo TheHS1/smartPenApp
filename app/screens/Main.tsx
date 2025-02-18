@@ -11,6 +11,7 @@ import useBLE from '../useBLE'
 import PageSelector from "../components/PageSelector";
 import { fileInfo, annotation, } from "../types";
 import { getFiles } from "../utils";
+import Constants from "expo-constants";
 
 export default function Main({ route }) {
   const { fileName } = route.params;
@@ -35,6 +36,20 @@ export default function Main({ route }) {
     });
   }, [navigation, showPageSelector]);
 
+  // BLE does not work in expo go
+  const expoGo = Constants.executionEnvironment === 'storeClient'
+
+  const {
+    requestPermissions,
+    scanForPeripherals,
+    allDevices,
+    connectToDevice,
+    connectedDevice,
+    data,
+    disconnectFromDevice,
+  } = useBLE();
+
+
   useEffect(() => {
     getFiles()
       .then((files: Map<string, fileInfo>) => {
@@ -56,18 +71,9 @@ export default function Main({ route }) {
       }
     }
 
-    fetchDevice().catch(console.error);
+    fetchDevice();
   }, [])
 
-  const {
-    requestPermissions,
-    scanForPeripherals,
-    allDevices,
-    connectToDevice,
-    connectedDevice,
-    data,
-    disconnectFromDevice
-  } = useBLE();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   const scanForDevices = async () => {
@@ -140,7 +146,7 @@ export default function Main({ route }) {
         paddingRight: insets.right
       }}
       className="h-full w-full">
-      {(connectedDevice || bypass) ? (
+      {(expoGo || connectedDevice || bypass) ? (
         <View
           className="flex w-full h-full">
           <View className="flex-1 flex flex-row">

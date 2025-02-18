@@ -5,11 +5,13 @@ import { BleError, BleManager, Characteristic, Device } from "react-native-ble-p
 import * as ExpoDevice from "expo-device"
 
 import base64 from "react-native-base64"
+import Constants from "expo-constants";
 
 const DATA_UUID = "00000001-710e-4a5b-8d75-3e5b444bc3cf"
 const DATA_CHARACTERISTIC = "00000002-710e-4a5b-8d75-3e5b444bc3cf"
 
-const deviceName = "therealdeal"
+// BLE does not work with Expo Go
+const deviceName = "Pen service"
 
 interface BluetoothLowEnergyApi {
     requestPermissions(): Promise<boolean>;
@@ -21,8 +23,13 @@ interface BluetoothLowEnergyApi {
     disconnectFromDevice(): void;
 }
 
+const expoGo = Constants.executionEnvironment === 'storeClient'
+
 export default function useBLE(): BluetoothLowEnergyApi {
-    const bleManager = useMemo(() => new BleManager(), []);
+    let bleManager: BleManager;
+    if (!expoGo) {
+        bleManager = useMemo(() => new BleManager(), []);
+    }
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
     const [data, setData] = useState<string>("");
@@ -86,7 +93,9 @@ export default function useBLE(): BluetoothLowEnergyApi {
         devices.findIndex((device) => nextDevice.id === device.id) > -1;
 
 
-    const scanForPeripherals = () =>
+    const scanForPeripherals = () => {
+        if (!bleManager)
+            return
         bleManager.startDeviceScan(null, null, (error, device) => {
             if (error) {
                 console.log(error);
@@ -100,8 +109,12 @@ export default function useBLE(): BluetoothLowEnergyApi {
                 });
             }
         });
+    }
 
     const connectToDevice = async (device: Device) => {
+        if (!bleManager) {
+            return
+        }
         try {
             const deviceConnection = await bleManager.connectToDevice(device.id)
             setConnectedDevice(deviceConnection);
@@ -145,6 +158,8 @@ export default function useBLE(): BluetoothLowEnergyApi {
     }
 
     const disconnectFromDevice = () => {
+        if (!bleManager)
+            return
         if (connectedDevice) {
             bleManager.cancelDeviceConnection(connectedDevice.id)
             setConnectedDevice(null);

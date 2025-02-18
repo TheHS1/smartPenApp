@@ -9,7 +9,6 @@ import Documents from "./screens/Documents";
 import Main from "./screens/Main";
 
 const Stack = createNativeStackNavigator();
-const MainStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 export default function StackNavigator() {
