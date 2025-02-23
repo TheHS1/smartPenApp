@@ -11,7 +11,7 @@ import useBLE from '../useBLE'
 import PageSelector from "../components/PageSelector";
 import { fileInfo, pathInfo } from "../types";
 import { getFiles } from "../utils";
-import PluginsModal from "./PluginsModal";
+import PluginManager from "../PluginManager";
 
 export default function Main({ route }) {
   const { fileName } = route.params;
@@ -162,35 +162,9 @@ export default function Main({ route }) {
             )}
             <Annotations paths={paths} data={data} setPaths={setPaths} savePathFile={savePathFile} />
           </View>
-          <PluginsModal
+          <PluginManager
             closeModal={() => setShowPlugin(false)}
             visible={showPlugin}
-            plugins={
-              [{
-                title: "Latex Plugin",
-                description: "This plugin converts the text that was written by hand into latex code by expanding snippets and then providing a PDF file to to the user. Please check the documentation for more information",
-                iconPath: "string",
-                enabled: true,
-              },
-              {
-                title: "Sentiment Analysis",
-                description: "string",
-                iconPath: "string",
-                enabled: true,
-              },
-              {
-                title: "Latex Plugin",
-                description: "This plugin converts the text that was written by hand into latex code by expanding snippets and then providing a PDF file to to the user. Please check the documentation for more information",
-                iconPath: "string",
-                enabled: true,
-              },
-              {
-                title: "Latex Plugin",
-                description: "This plugin converts the text that was written by hand into latex code by expanding snippets and then providing a PDF file to to the user. Please check the documentation for more information",
-                iconPath: "string",
-                enabled: false,
-              }
-              ]}
           />
         </View>
       ) : (

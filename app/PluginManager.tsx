@@ -1,30 +1,35 @@
 import { Ionicons } from "@expo/vector-icons";
+import React, { ComponentType } from "react";
 import { FC, useCallback, useState } from "react";
 import { FlatList, ListRenderItemInfo, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import plugArray from "./plugins/index";
 
-export interface Plugin {
+export interface PlugInfo {
   title: string;
   description: string;
-  iconPath: string;
   enabled: boolean;
+  Func: ComponentType;
 }
 
 interface PlugProps {
-  plugins: Plugin[];
   visible: boolean;
   closeModal: () => void;
 }
 
 type devLIProps = {
-  item: ListRenderItemInfo<Plugin>;
+  item: ListRenderItemInfo<PlugInfo>;
 }
+
+const plugins: PlugInfo[] = plugArray();
 
 const PlugLI: FC<devLIProps> = (props: devLIProps) => {
   const { item } = props;
   const [showDescription, setShowDescription] = useState<boolean>(false);
   const descriptionHeight = useSharedValue<number>(0);
+  const [enabled, setEnabled] = useState<boolean>(item.item.enabled);
+  const [showSettings, setShowSettings] = useState<boolean>();
 
   // Update height based on whether the description is shown or not
   if (showDescription) {
@@ -41,6 +46,11 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
     };
   });
 
+  const toggleEnabled = () => {
+    setEnabled(!enabled);
+    item.item.enabled = !item.item.enabled;
+  }
+
   return (
     <View
       className="border border-blue-500 rounded-lg my-3 p-3 flex"
@@ -52,16 +62,28 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
           <Ionicons name={showDescription ? "chevron-down-outline" : "chevron-forward-outline"} size={18} color="black" />
         </TouchableOpacity>
         <Text className="flex-1 text-base font-bold">{item.item.title}</Text>
+        {(enabled && showDescription) && (
+          <TouchableOpacity
+            className="flex-initial"
+            onPress={() => setShowSettings(!showSettings)}
+          >
+            <Ionicons name="create-outline" size={36} color="gray" />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           className="flex-initial"
-          onPress={() => item.item.enabled = !item.item.enabled}
+          onPress={toggleEnabled}
         >
-          <Ionicons name={item.item.enabled ? "checkmark-outline" : "close-outline"} size={36} color={item.item.enabled ? "green" : "red"} />
+          <Ionicons name={enabled ? "checkmark-outline" : "close-outline"} size={36} color={enabled ? "green" : "red"} />
         </TouchableOpacity>
       </View>
       <Animated.View style={animatedDescriptionStyle}>
         <ScrollView>
-          <Text className="text-base text-gray-500">{item.item.description}</Text>
+          {showSettings ? (
+            <item.item.Func />
+          ) :
+            <Text className="text-base text-gray-500">{item.item.description}</Text>
+          }
         </ScrollView>
       </Animated.View>
     </View>
@@ -69,10 +91,10 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
 }
 
 export default function DeviceConnectionModal(props: PlugProps) {
-  const { plugins, visible, closeModal } = props;
+  const { visible, closeModal } = props;
 
   const renderListItem = useCallback(
-    (item: ListRenderItemInfo<Plugin>) => {
+    (item: ListRenderItemInfo<PlugInfo>) => {
       return (
         <PlugLI
           item={item}
