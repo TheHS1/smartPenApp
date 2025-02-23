@@ -49,6 +49,7 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
   const toggleEnabled = () => {
     setEnabled(!enabled);
     item.item.enabled = !item.item.enabled;
+    setShowSettings(false);
   }
 
   return (
