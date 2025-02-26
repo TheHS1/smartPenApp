@@ -12,6 +12,7 @@ import PageSelector from "../components/PageSelector";
 import { fileInfo, annotation, } from "../types";
 import { getFiles } from "../utils";
 import Constants from "expo-constants";
+import PluginManager from "../PluginManager";
 
 export default function Main({ route }) {
   const { fileName } = route.params;
@@ -25,12 +26,19 @@ export default function Main({ route }) {
   const [bypass, setBypass] = useState<boolean>(false);
   const [pageNum, setPageNum] = useState<number>(0);
 
+  const [showPlugin, setShowPlugin] = useState<boolean>(false);
+
   // set button action for menu button in header
   useEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
         <TouchableOpacity onPress={() => setShowPageSelector(!showPageSelector)}>
           <Ionicons name="menu" size={36} color="blue" />
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity onPress={() => setShowPlugin(true)}>
+          <Ionicons name="extension-puzzle-outline" size={36} color="blue" />
         </TouchableOpacity>
       ),
     });
@@ -74,7 +82,7 @@ export default function Main({ route }) {
     fetchDevice();
   }, [])
 
-  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [isDevModalVisible, setIsDevModalVisible] = useState<boolean>(false);
 
   const scanForDevices = async () => {
     const isPermissionsEnabled = await requestPermissions();
@@ -93,13 +101,13 @@ export default function Main({ route }) {
     }
   }
 
-  const hideModal = () => {
-    setIsModalVisible(false);
+  const hideDevModal = () => {
+    setIsDevModalVisible(false);
   }
 
-  const openModal = async () => {
+  const openDevModal = async () => {
     scanForDevices();
-    setIsModalVisible(true);
+    setIsDevModalVisible(true);
   }
 
   const addPage = async () => {
@@ -160,12 +168,16 @@ export default function Main({ route }) {
             )}
             <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} />
           </View>
+          <PluginManager
+            closeModal={() => setShowPlugin(false)}
+            visible={showPlugin}
+          />
         </View>
       ) : (
         <View>
           <Text className="text-center text-lg">Please connect your smart pen device</Text>
           <TouchableOpacity
-            onPress={openModal}
+            onPress={openDevModal}
           >
             <Text className="text-center bg-blue-500 p-5 m-10 text-white">
               Connect
@@ -173,8 +185,8 @@ export default function Main({ route }) {
           </TouchableOpacity>
           <Button onPress={() => setBypass(true)} title="Skip" />
           <DeviceModal
-            closeModal={hideModal}
-            visible={isModalVisible}
+            closeModal={hideDevModal}
+            visible={isDevModalVisible}
             connectToPeripheral={connectToPeripheral}
             devices={allDevices}
           />

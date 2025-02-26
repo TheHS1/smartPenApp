@@ -47,7 +47,6 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const [redoHist, setRedoHist] = useState<history[]>([]);
 
   // Controls
-
   const maxStroke = 11;
   const [strokeSize, setStrokeSize] = useState<number>(1);
   const [showAnnotationState, setShowAnnotationState] = useState(true);
