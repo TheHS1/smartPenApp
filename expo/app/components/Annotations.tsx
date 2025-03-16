@@ -4,8 +4,9 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import ColorPicker, { Panel1, Swatches, Preview, HueSlider, returnedResults } from 'reanimated-color-picker';
 import { ReanimatedLogLevel, configureReanimatedLogger, runOnJS, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import AnnotationTools from "./AnnotationTools";
-import { Canvas, Group, Path, SkPath, Skia, Paragraph } from "@shopify/react-native-skia";
-import { annotation, pathInfo, textInfo } from "../types";
+import { Canvas, Group, Paragraph, Path, SkPath, Skia } from "@shopify/react-native-skia";
+import { annotation, pathInfo, textInfo, transformData } from "../types";
+import Touchable, { useGestureHandler, } from 'react-native-skia-gesture';
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -14,6 +15,7 @@ configureReanimatedLogger({
 
 export enum tools {
   draw,
+  edit,
   erase,
   text
 }
@@ -71,6 +73,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const translateY = useSharedValue(0);
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
+  const selectedPath = useSharedValue(1);
 
   const updatePath = (x: number, y: number) => {
     'worklet';
@@ -89,10 +92,12 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const saveAnnotation = () => {
     const annotationSave = curDrawn.value;
+    const tForm = { scale: 1, translateX: 0, translateY: 0 }
+
     if ((selTool === tools.erase || selTool === tools.draw) && annotationSave != "") {
-      setAnnotations([...annotations, { color: color, strokeSize: strokeSize, path: annotationSave, erase: (selTool === tools.erase) } as pathInfo]);
+      setAnnotations([...annotations, { color: color, strokeSize: strokeSize, path: annotationSave, erase: (selTool === tools.erase), transform: tForm } as pathInfo]);
     } else if (text != "") {
-      setAnnotations([...annotations, { text: text, x: x, y: y, color: color, strokeSize: strokeSize * 10 } as textInfo]);
+      setAnnotations([...annotations, { text: text, x: x, y: y, color: color, strokeSize: strokeSize * 10, transform: tForm } as textInfo]);
     }
     setHist((prevHist) => [...prevHist, { action: actions.addAnnotation }]);
     curDrawn.value = "";
@@ -176,6 +181,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     setStrokeSize(size);
   }
 
+  // Canvas controls
   const clamp = (num: number, min: number, max: number) => {
     'worklet';
     return Math.max(min, Math.min(num, max));
@@ -209,7 +215,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       runOnJS(saveAnnotation)();
     })
 
-  const movement = Gesture.Simultaneous(panGesture, pinchGesture)
+  const movement = Gesture.Simultaneous(panGesture)
 
   const inputRef = useRef<TextInput>(null);
 
@@ -225,7 +231,39 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     runOnJS(focusInput)(evt.x, evt.y);
   });
 
-  const composed = Gesture.Race(drawGesture, movement, tap)
+  const canvasGes = Gesture.Race(drawGesture, movement, tap)
+
+  // for editing paths
+  const scalePath = Gesture.Pinch()
+    .onUpdate((e) => {
+      if (selectedPath.value < 0) {
+        return;
+      }
+      const ind = selectedPath.value;
+      const oldAnno = annotations
+      const tForm = {
+        ...oldAnno[ind].transform,
+        scale: oldAnno[ind].transform.scale * e.scale,
+      }
+      oldAnno[ind] = { ...oldAnno[ind], transform: tForm }
+      console.log(annotations[ind]);
+      runOnJS(setAnnotations)(oldAnno);
+    })
+    .onEnd(() => {
+      // savedScale.value = scale.value;
+    });
+
+  const movePath = Gesture.Pan()
+    .onUpdate(e => {
+      // updatePath(e.x, e.y);
+    })
+    .onEnd(e => {
+      // runOnJS(saveAnnotation)();
+    })
+
+  const editTransform = Gesture.Simultaneous(scalePath, movePath);
+  const editGes = Gesture.Race(editTransform, Gesture.Tap());
+  const emptyGes = Gesture.Simultaneous();
 
   const resetTransform = () => {
     'worklet'
@@ -245,29 +283,34 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   interface renAnnoProps {
     annotation: annotation;
+    id: number;
   }
 
-  const RenderAnnotations = ({ annotation }: renAnnoProps) => {
+  const RenderAnnotations = ({ annotation, id }: renAnnoProps) => {
     if (!showAnnotation.value)
       return;
 
     if ('text' in annotation) {
       const textAnno = annotation as textInfo;
-      return (<RenderText color={textAnno.color} size={textAnno.strokeSize} txt={textAnno.text} x={textAnno.x} y={textAnno.y} />)
+      return (<RenderText color={textAnno.color} size={textAnno.strokeSize} txt={textAnno.text} x={textAnno.x} y={textAnno.y} transform={annotation.transform} />)
     }
     const pathAnno = annotation as pathInfo;
-    return (<RenderPath path={pathAnno.path} size={pathAnno.strokeSize} erase={pathAnno.erase} color={pathAnno.color} />)
+    return (<RenderPath path={pathAnno.path} size={pathAnno.strokeSize} erase={pathAnno.erase} color={pathAnno.color} transform={annotation.transform} id={id} />)
   }
 
   const RenderPreview = () => {
     if (!showAnnotation.value)
       return;
 
+    const tForm = { scale: 1, translateX: 1, translateY: 1 }
+
     if (selTool === tools.text) {
-      return (<RenderText color={color} size={strokeSize * 10} txt={text} x={x} y={y} />);
+      return (<RenderText color={color} size={strokeSize * 10} txt={text} x={x} y={y} transform={tForm} />);
+    } else if (selTool === tools.draw || selTool === tools.erase) {
+      return (<RenderPath path={curDrawn.value} size={strokeSize} erase={(selTool === tools.erase)} color={color} transform={tForm} />);
     }
 
-    return (<RenderPath path={curDrawn.value} size={strokeSize} erase={(selTool === tools.erase)} color={color} />);
+    return
   }
 
   interface renTextProps {
@@ -275,7 +318,8 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     size: number;
     txt: string;
     x: number;
-    y: number
+    y: number;
+    transform: transformData;
   }
 
   interface renPathProps {
@@ -283,10 +327,11 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     size: number;
     erase: boolean;
     color: string;
+    transform: transformData;
+    id?: number;
   }
 
-  const RenderText = ({ color, size, txt, x, y }: renTextProps) => {
-
+  const RenderText = ({ color, size, txt, x, y, transform }: renTextProps) => {
     const makeParagraph = (para: string, color: string, size: number) => {
       const textStyle = {
         color: Skia.Color(color),
@@ -303,20 +348,58 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         x={x}
         y={y}
         width={300}
+        transform={[transform]}
       />
     )
   }
 
-  const RenderPath = ({ path, size, erase, color }: renPathProps) => {
+  const RenderPath = ({ path, size, erase, color, transform, id }: renPathProps) => {
+    const shareID = useSharedValue(id);
+
+    const pathGesture = useGestureHandler({
+      onStart: () => {
+        'worklet';
+        console.log(shareID.value)
+        if (shareID.value && shareID.value >= 0) {
+          console.log("set value")
+          selectedPath.value = shareID.value;
+        }
+      },
+    });
+
+    console.log("RAW: " + path);
+
+    const matrix = Skia.Matrix();
+    console.log(translateX.value + " " + translateY.value);
+    // matrix.translate(translateX.value, translateY.value);
+    // matrix.scale(0.7 * scale.value - 0.3, 0.7 * scale.value - 0.3);
+    //matrix.translate(transform.translateX, transform.translateY);
+    // matrix.scale(transform.scale, transform.scale);
+    console.log(matrix.get());
+    const tForm = [{ scale: 1 / scale.value, translateX: -translateX.value, translateY: -translateY.value }]
+
     return (
-      <Path
-        path={path}
-        style="stroke"
-        strokeWidth={size}
-        strokeCap="round"
-        strokeJoin={"round"}
-        color={erase ? 'white' : color}
-      />
+      <Group>
+        <Path
+          path={(Skia.Path.MakeFromSVGString(path)?.transform(matrix) ?? Skia.Path.Make()).toSVGString()}
+          style="stroke"
+          strokeWidth={size}
+          strokeCap="round"
+          strokeJoin={"round"}
+          color={'blue'}
+        />
+        <Touchable.Path
+          path={path}
+          style="stroke"
+          strokeWidth={size}
+          strokeCap="round"
+          strokeJoin={"round"}
+          color={erase ? 'white' : color}
+          transform={[transform]}
+          touchablePath={(Skia.Path.MakeFromSVGString(path)?.transform(matrix) ?? Skia.Path.Make())}
+          {...pathGesture}
+        />
+      </Group>
     )
   }
 
@@ -336,15 +419,15 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         toggleShowAnnotation={toggleShowAnnotation}
       />
       <GestureHandlerRootView>
-        <GestureDetector gesture={composed}>
-          <Canvas
+        <GestureDetector gesture={selTool != tools.edit ? canvasGes : editGes}>
+          <Touchable.Canvas
             style={{ flex: 1 }}
             className="absolute"
           >
             <Group transform={transform}>
               {/* Show saved page strokes */}
               {annotations.map((annotation: annotation, index: number) => (
-                <RenderAnnotations key={index} annotation={annotation} />
+                <RenderAnnotations key={index} annotation={annotation} id={index} />
               ))}
               <RenderPreview />
               <Path /* Display Annotation Data streamed from pen */
@@ -355,7 +438,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
                 color="black"
               />
             </Group>
-          </Canvas>
+          </Touchable.Canvas>
         </GestureDetector>
       </GestureHandlerRootView>
       <Button title="Reset" onPress={resetTransform} />

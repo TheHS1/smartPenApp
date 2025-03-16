@@ -48,6 +48,11 @@ export default function AnnotationTools({ showAnnotation, strokeSize, selTool, c
         <Ionicons name="text-outline" size={32} color={(selTool === tools.text) ? "blue" : "black"} />
       </TouchableOpacity>
 
+      {/*Edit tool*/}
+      <TouchableOpacity onPress={() => setSelTool(tools.edit)} className="flex-1 items-center">
+        <Ionicons name="create-outline" size={32} color={(selTool === tools.edit) ? "blue" : "black"} />
+      </TouchableOpacity>
+
       {/*undoRedo*/}
       <TouchableOpacity onPress={undoDraw} className="flex-1 items-center">
         <Ionicons name="arrow-undo" size={32} color="black" />

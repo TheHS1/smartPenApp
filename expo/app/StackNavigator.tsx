@@ -20,11 +20,11 @@ export default function StackNavigator() {
         headerShown: false
       }}
     >
-      <Stack.Screen name="Login" component={Login} />
       <Stack.Screen
         name="Main"
         component={TabNavigator}
       />
+      <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Profile" component={Profile} />
       <Stack.Screen name="Settings" component={Settings} />
     </Stack.Navigator>

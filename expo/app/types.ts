@@ -1,6 +1,13 @@
+export interface transformData {
+    scale: number;
+    translateX: number;
+    translateY: number;
+}
+
 export interface annotation {
     color: string;
     strokeSize: number;
+    transform: transformData;
 }
 
 export interface textInfo extends annotation {
