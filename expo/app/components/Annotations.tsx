@@ -237,11 +237,12 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const selectpath = Gesture.Tap().onEnd((evt) => {
     const annos = [...annotations];
-    for (let i = 0; i < annos.length; i++) {
+    for (let i = annos.length - 1; i >= 0; i--) {
       if (Skia.Path.MakeFromSVGString((annos[i] as pathInfo).path)?.contains(evt.x, evt.y)) {
         selectedPath.value = i;
         (selected.value as pathInfo).path = (annos[i] as pathInfo).path;
         runOnJS(setPathSelected)(i);
+        break;
       }
     }
   });
