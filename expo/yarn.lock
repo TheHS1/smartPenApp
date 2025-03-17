@@ -7486,11 +7486,6 @@ react-native-screens@~4.4.0:
     react-freeze "^1.0.0"
     warn-once "^0.1.0"
 
-react-native-skia-gesture@^0.3.6:
-  version "0.3.6"
-  resolved "https://registry.yarnpkg.com/react-native-skia-gesture/-/react-native-skia-gesture-0.3.6.tgz#4f439b24aeda63e0c3a80b667cba07db4acdf987"
-  integrity sha512-cdDSPzfctWAshhNHDO9C4zxUcLPvBU56Gp68NuEGt95FW6jW5JMEj7UZW54g35aiQ/NR9VXYgoHVJsnjyar6wg==
-
 react-native-svg@15.8.0:
   version "15.8.0"
   resolved "https://registry.yarnpkg.com/react-native-svg/-/react-native-svg-15.8.0.tgz#9b5fd4f5cf5675197b3f4cbfcc77c215de2b9502"
