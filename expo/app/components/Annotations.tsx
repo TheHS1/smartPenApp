@@ -79,7 +79,6 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   // show path edits
   const selected = useSharedValue<SkRect>({ x: 0, y: 0, width: 0, height: 0 })
   const mutatedCurDrawn = useSharedValue<string>("");
-  const [mutatedStrokeSize, mutatedSetStrokeSize] = useState<number>(1);
 
   const updatePath = (x: number, y: number) => {
     'worklet';
@@ -180,7 +179,14 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   }
 
   const confirmColor = () => {
-    setColor(selectedColor.value);
+    if (selTool === tools.edit) {
+      const oldAnno = [...annotations];
+      const annotation = (oldAnno[selectedPath.value] as pathInfo);
+      oldAnno[selectedPath.value] = { ...(annotation), color: selectedColor.value };
+      setAnnotations(oldAnno);
+    } else {
+      setColor(selectedColor.value);
+    }
     setShowPicker(false);
   }
 
@@ -194,6 +200,12 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const setStroke = () => {
     const size = Math.max((strokeSize + 2) % maxStroke, 1);
+    if (selTool === tools.edit) {
+      const oldAnno = [...annotations];
+      const annotation = (oldAnno[selectedPath.value] as pathInfo);
+      oldAnno[selectedPath.value] = { ...(annotation), strokeSize: size }
+      setAnnotations(oldAnno);
+    }
     setStrokeSize(size);
   }
 
@@ -261,7 +273,10 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
           runOnJS(setPathSelected)(i);
           selectedPath.value = i;
           selected.value = bounds;
-          mutatedCurDrawn.value = (annos[i] as pathInfo).path;
+          const anno = (annos[i] as pathInfo);
+          mutatedCurDrawn.value = anno.path;
+          runOnJS(setStrokeSize)(anno.strokeSize);
+          selectedColor.value = anno.color
           break;
         }
       }
@@ -441,9 +456,9 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
                   <Path
                     path={mutatedCurDrawn}
                     style="stroke"
-                    strokeWidth={annotations[pathSelected].strokeSize}
+                    strokeWidth={strokeSize}
                     strokeCap="round"
-                    color={annotations[pathSelected].color}
+                    color={selectedColor}
                   />
                   <Box box={selected} style="stroke" color="blue" strokeWidth={5}></Box>
                 </Group>
