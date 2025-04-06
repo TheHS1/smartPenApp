@@ -107,10 +107,22 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   }
 
   const clearAnnotation = () => {
-    setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations }]);
-    setAnnotations([]);
-    setRedoHist([]);
-    curDrawn.value = "";
+    if (tools.edit) {
+      if (selectedPath.value < 0 || selectedPath.value >= annotations.length) {
+        return;
+      }
+      const ind = selectedPath.value;
+      const oldAnno = [...annotations];
+      oldAnno.splice(ind, 1);
+      setAnnotations(oldAnno)
+      selectedPath.value = -1;
+      selected.value = { x: 0, y: 0, width: 0, height: 0 };
+    } else {
+      setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations }]);
+      setAnnotations([]);
+      setRedoHist([]);
+      curDrawn.value = "";
+    }
   }
 
   const undoAnnotation = () => {
@@ -256,7 +268,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   // for editing paths
   const scalePath = Gesture.Pinch()
     .onUpdate((e) => {
-      if (selectedPath.value < 0) {
+      if (selectedPath.value < 0 || selectedPath.value >= annotations.length) {
         return;
       }
       const matrix = Skia.Matrix();
