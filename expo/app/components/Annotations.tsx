@@ -4,7 +4,7 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import ColorPicker, { Panel1, Swatches, Preview, HueSlider, returnedResults } from 'reanimated-color-picker';
 import { ReanimatedLogLevel, configureReanimatedLogger, runOnJS, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import AnnotationTools from "./AnnotationTools";
-import { Canvas, Group, Paragraph, Path, SkPath, Skia } from "@shopify/react-native-skia";
+import { Box, Canvas, Group, Paragraph, Path, SkPath, SkRect, Skia } from "@shopify/react-native-skia";
 import { annotation, pathInfo, textInfo } from "../types";
 import React from "react";
 
@@ -77,7 +77,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const [pathSelected, setPathSelected] = useState<number>(-1);
 
   // show selected path
-  const selected = useSharedValue<annotation>({ color: 'blue', strokeSize: 1 })
+  const selected = useSharedValue<SkRect>({ x: 0, y: 0, width: 0, height: 0 })
 
   const updatePath = (x: number, y: number) => {
     'worklet';
@@ -238,11 +238,17 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const selectpath = Gesture.Tap().onEnd((evt) => {
     const annos = [...annotations];
     for (let i = annos.length - 1; i >= 0; i--) {
-      if (Skia.Path.MakeFromSVGString((annos[i] as pathInfo).path)?.contains(evt.x, evt.y)) {
-        selectedPath.value = i;
-        (selected.value as pathInfo).path = (annos[i] as pathInfo).path;
-        runOnJS(setPathSelected)(i);
-        break;
+      const bounds = Skia.Path.MakeFromSVGString((annos[i] as pathInfo).path)?.getBounds();
+      if (bounds) {
+        // Use bounding rectangle to check if user tapping path
+        const xBounds = evt.x >= bounds.x && evt.x <= bounds.x + bounds.width;
+        const yBounds = evt.y >= bounds.y && evt.y <= bounds.y + bounds.height;
+        if (xBounds && yBounds) {
+          selectedPath.value = i;
+          selected.value = bounds;
+          runOnJS(setPathSelected)(i);
+          break;
+        }
       }
     }
   });
@@ -257,25 +263,29 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       matrix.scale(Math.pow(e.scale, 0.1), Math.pow(e.scale, 0.1));
       const ind = selectedPath.value;
       const oldAnno = [...annotations];
-      const newPath = Skia.Path.MakeFromSVGString((oldAnno[ind] as pathInfo).path)?.transform(matrix).toSVGString();
-      oldAnno[ind] = { ...oldAnno[ind], path: newPath } as pathInfo
-      (selected.value as pathInfo).path = newPath ?? "";
-      runOnJS(setAnnotations)(oldAnno);
+      const newPath = Skia.Path.MakeFromSVGString((oldAnno[ind] as pathInfo).path)?.transform(matrix)
+      if (newPath) {
+        oldAnno[ind] = { ...oldAnno[ind], path: newPath?.toSVGString() } as pathInfo
+        selected.value = newPath.getBounds();
+        runOnJS(setAnnotations)(oldAnno);
+      }
     })
 
   const movePath = Gesture.Pan()
     .onUpdate(e => {
-      if (selectedPath.value < 0) {
+      if (selectedPath.value < 0 || selectedPath.value >= annotations.length) {
         return;
       }
       const matrix = Skia.Matrix();
       matrix.translate(e.translationX, e.translationY);
       const ind = selectedPath.value;
       const oldAnno = [...annotations];
-      const newPath = Skia.Path.MakeFromSVGString((oldAnno[ind] as pathInfo).path)?.transform(matrix).toSVGString();
-      oldAnno[ind] = { ...oldAnno[ind], path: newPath } as pathInfo
-      (selected.value as pathInfo).path = newPath ?? "";
-      runOnJS(setAnnotations)(oldAnno);
+      const newPath = Skia.Path.MakeFromSVGString((oldAnno[ind] as pathInfo).path)?.transform(matrix);
+      if (newPath) {
+        oldAnno[ind] = { ...oldAnno[ind], path: newPath.toSVGString() } as pathInfo
+        selected.value = newPath.getBounds();
+        runOnJS(setAnnotations)(oldAnno);
+      }
     })
 
   const editTransform = Gesture.Race(scalePath, movePath);
@@ -400,7 +410,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
               ))}
               <RenderPreview />
               {pathSelected >= 0 && selTool === tools.edit && (
-                <RenderAnnotations annotation={selected.value} />
+                <Box box={selected} style="stroke" color="blue" strokeWidth={5}></Box>
               )}
               <Path /* Display Annotation Data streamed from pen */
                 path={Skia.Path.MakeFromSVGString(data.substr(0, data.lastIndexOf(" "))) as SkPath}
