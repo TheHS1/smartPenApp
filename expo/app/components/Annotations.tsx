@@ -76,8 +76,10 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const selectedPath = useSharedValue(-1);
   const [pathSelected, setPathSelected] = useState<number>(-1);
 
-  // show selected path
+  // show path edits
   const selected = useSharedValue<SkRect>({ x: 0, y: 0, width: 0, height: 0 })
+  const mutatedCurDrawn = useSharedValue<string>("");
+  const [mutatedStrokeSize, mutatedSetStrokeSize] = useState<number>(1);
 
   const updatePath = (x: number, y: number) => {
     'worklet';
@@ -107,15 +109,15 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   }
 
   const clearAnnotation = () => {
-    if (tools.edit) {
+    if (selTool === tools.edit) {
       if (selectedPath.value < 0 || selectedPath.value >= annotations.length) {
         return;
       }
-      const ind = selectedPath.value;
       const oldAnno = [...annotations];
-      oldAnno.splice(ind, 1);
+      oldAnno.splice(selectedPath.value, 1);
       setAnnotations(oldAnno)
       selectedPath.value = -1;
+      setPathSelected(-1);
       selected.value = { x: 0, y: 0, width: 0, height: 0 };
     } else {
       setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations }]);
@@ -256,9 +258,10 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         const xBounds = evt.x >= bounds.x && evt.x <= bounds.x + bounds.width;
         const yBounds = evt.y >= bounds.y && evt.y <= bounds.y + bounds.height;
         if (xBounds && yBounds) {
+          runOnJS(setPathSelected)(i);
           selectedPath.value = i;
           selected.value = bounds;
-          runOnJS(setPathSelected)(i);
+          mutatedCurDrawn.value = (annos[i] as pathInfo).path;
           break;
         }
       }
@@ -272,15 +275,20 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         return;
       }
       const matrix = Skia.Matrix();
-      matrix.scale(Math.pow(e.scale, 0.1), Math.pow(e.scale, 0.1));
-      const ind = selectedPath.value;
-      const oldAnno = [...annotations];
-      const newPath = Skia.Path.MakeFromSVGString((oldAnno[ind] as pathInfo).path)?.transform(matrix)
+      matrix.scale(e.scale, e.scale);
+      const newPath = Skia.Path.MakeFromSVGString((annotations[selectedPath.value] as pathInfo).path)?.transform(matrix);
       if (newPath) {
-        oldAnno[ind] = { ...oldAnno[ind], path: newPath?.toSVGString() } as pathInfo
         selected.value = newPath.getBounds();
-        runOnJS(setAnnotations)(oldAnno);
+        mutatedCurDrawn.value = newPath.toSVGString();
       }
+    })
+    .onEnd(() => {
+      if (selectedPath.value < 0 || selectedPath.value >= annotations.length) {
+        return;
+      }
+      const oldAnno = [...annotations];
+      (oldAnno[selectedPath.value] as pathInfo) = { ...(oldAnno[selectedPath.value] as pathInfo), path: mutatedCurDrawn.value }
+      runOnJS(setAnnotations)(oldAnno);
     })
 
   const movePath = Gesture.Pan()
@@ -290,14 +298,20 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       }
       const matrix = Skia.Matrix();
       matrix.translate(e.translationX, e.translationY);
-      const ind = selectedPath.value;
-      const oldAnno = [...annotations];
-      const newPath = Skia.Path.MakeFromSVGString((oldAnno[ind] as pathInfo).path)?.transform(matrix);
+      const newPath = Skia.Path.MakeFromSVGString((annotations[selectedPath.value] as pathInfo).path)?.transform(matrix);
       if (newPath) {
-        oldAnno[ind] = { ...oldAnno[ind], path: newPath.toSVGString() } as pathInfo
         selected.value = newPath.getBounds();
-        runOnJS(setAnnotations)(oldAnno);
+        mutatedCurDrawn.value = newPath.toSVGString();
       }
+    })
+    .onEnd(() => {
+      if (selectedPath.value < 0 || selectedPath.value >= annotations.length) {
+        return;
+      }
+      const oldAnno = [...annotations];
+      (oldAnno[selectedPath.value] as pathInfo) = { ...(oldAnno[selectedPath.value] as pathInfo), path: mutatedCurDrawn.value }
+      runOnJS(setAnnotations)(oldAnno);
+
     })
 
   const editTransform = Gesture.Race(scalePath, movePath);
@@ -418,11 +432,21 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
             <Group transform={transform}>
               {/* Show saved page strokes */}
               {annotations.map((annotation: annotation, index: number) => (
-                <RenderAnnotations key={index} annotation={annotation} />
-              ))}
+                pathSelected != index && (
+                  <RenderAnnotations key={index} annotation={annotation} />
+                )))}
               <RenderPreview />
               {pathSelected >= 0 && selTool === tools.edit && (
-                <Box box={selected} style="stroke" color="blue" strokeWidth={5}></Box>
+                <Group>
+                  <Path
+                    path={mutatedCurDrawn}
+                    style="stroke"
+                    strokeWidth={annotations[pathSelected].strokeSize}
+                    strokeCap="round"
+                    color={annotations[pathSelected].color}
+                  />
+                  <Box box={selected} style="stroke" color="blue" strokeWidth={5}></Box>
+                </Group>
               )}
               <Path /* Display Annotation Data streamed from pen */
                 path={Skia.Path.MakeFromSVGString(data.substr(0, data.lastIndexOf(" "))) as SkPath}
