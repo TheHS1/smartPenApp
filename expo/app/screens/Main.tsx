@@ -13,6 +13,8 @@ import { fileInfo, annotation, } from "../types";
 import { getFiles } from "../utils";
 import Constants from "expo-constants";
 import PluginManager from "../PluginManager";
+import { useCanvasRef } from "@shopify/react-native-skia";
+import * as FileSystem from 'expo-file-system';
 
 export default function Main({ route }) {
   const { fileName } = route.params;
@@ -21,6 +23,7 @@ export default function Main({ route }) {
 
   const [fInfo, setFileInfo] = useState<fileInfo>({ pages: [] });
   const [annotations, setAnnotations] = useState<annotation[]>([]);
+  const ref = useCanvasRef();
 
   const [showPageSelector, setShowPageSelector] = useState<boolean>(false);
   const [bypass, setBypass] = useState<boolean>(false);
@@ -145,6 +148,21 @@ export default function Main({ route }) {
       .catch(console.error);
   }
 
+  const canvasSnap = async () => {
+    const image = await ref.current?.makeImageSnapshotAsync();
+    if (image) {
+      const bytes = image.encodeToBase64();
+      if (bytes) {
+        await FileSystem.writeAsStringAsync(FileSystem.documentDirectory + 'canvas.png', bytes, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
   return (
     <View
       style={{
@@ -166,11 +184,12 @@ export default function Main({ route }) {
                 deletePage={deletePage}
               />
             )}
-            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} />
+            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} />
           </View>
           <PluginManager
             closeModal={() => setShowPlugin(false)}
             visible={showPlugin}
+            canvasSnap={canvasSnap}
           />
         </View>
       ) : (
