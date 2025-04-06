@@ -22,6 +22,7 @@
     "@shopify/react-native-skia": "1.5.0",
     "expo": "~52.0.38",
     "expo-constants": "~17.0.8",
+    "expo-dev-client": "~5.0.19",
     "expo-device": "~7.0.2",
     "expo-file-system": "~18.0.11",
     "expo-font": "~13.0.4",
