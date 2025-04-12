@@ -275,8 +275,10 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       const bounds = Skia.Path.MakeFromSVGString((annos[i] as pathInfo).path)?.getBounds();
       if (bounds) {
         // Use bounding rectangle to check if user tapping path
-        const xBounds = evt.x >= bounds.x && evt.x <= bounds.x + bounds.width;
-        const yBounds = evt.y >= bounds.y && evt.y <= bounds.y + bounds.height;
+        const tapX = (evt.x - translateX.value) / scale.value;
+        const tapY = (evt.y - translateY.value) / scale.value;
+        const xBounds = tapX >= bounds.x && tapX <= bounds.x + bounds.width;
+        const yBounds = tapY >= bounds.y && tapY <= bounds.y + bounds.height;
         if (xBounds && yBounds) {
           runOnJS(setPathSelected)(i);
           selectedPath.value = i;
@@ -298,7 +300,14 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         return;
       }
       const matrix = Skia.Matrix();
+      const origBounds = Skia.Path.MakeFromSVGString((annotations[selectedPath.value] as pathInfo).path)?.getBounds();
+      if (origBounds) {
+        matrix.translate(origBounds.x + origBounds.width / 2, origBounds.y + origBounds.height / 2);
+      }
       matrix.scale(e.scale, e.scale);
+      if (origBounds) {
+        matrix.translate(-(origBounds.x + origBounds.width / 2), -(origBounds.y + origBounds.height / 2));
+      }
       const newPath = Skia.Path.MakeFromSVGString((annotations[selectedPath.value] as pathInfo).path)?.transform(matrix);
       if (newPath) {
         selected.value = newPath.getBounds();
@@ -320,7 +329,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         return;
       }
       const matrix = Skia.Matrix();
-      matrix.translate(e.translationX, e.translationY);
+      matrix.translate(e.translationX / scale.value, e.translationY / scale.value);
       const newPath = Skia.Path.MakeFromSVGString((annotations[selectedPath.value] as pathInfo).path)?.transform(matrix);
       if (newPath) {
         selected.value = newPath.getBounds();
