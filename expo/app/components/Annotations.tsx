@@ -80,6 +80,14 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const selected = useSharedValue<SkRect>({ x: 0, y: 0, width: 0, height: 0 })
   const mutatedCurDrawn = useSharedValue<string>("");
 
+  const changeTool = (tool: tools) => {
+    setPathSelected(-1);
+    selectedPath.value = -1;
+    selected.value = { x: 0, y: 0, width: 0, height: 0 };
+    mutatedCurDrawn.value = "";
+    setSelTool(tool);
+  }
+
   const updatePath = (x: number, y: number) => {
     'worklet';
     if (!showAnnotation.value)
@@ -432,7 +440,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         color={color}
         toggleShowPicker={toggleShowPicker}
         setStroke={setStroke}
-        setSelTool={setSelTool}
+        changeTool={changeTool}
         undoDraw={undoAnnotation}
         redoDraw={redoDraw}
         clearPath={clearAnnotation}
