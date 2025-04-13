@@ -312,18 +312,16 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
           runOnJS(setAnnoSelected)(i);
           selectedAnno.value = i;
           selected.value = bounds;
-          let anno: annotation;
+          const anno = annos[i];
           if ('text' in annos[i]) {
-            anno = annos[i];
             mutatedText.value = (anno as textInfo).text;
             mutatedx.value = (anno as textInfo).x;
             mutatedy.value = (anno as textInfo).y;
-            mutatedStrokeSize.value = anno.strokeSize;
           } else {
-            anno = annos[i];
             mutatedCurDrawn.value = (anno as pathInfo).path;
           }
           selectedColor.value = anno.color
+          mutatedStrokeSize.value = anno.strokeSize;
           break;
         }
       }
@@ -371,6 +369,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         if (newPath) {
           selected.value = newPath.getBounds();
           mutatedCurDrawn.value = newPath.toSVGString();
+          mutatedStrokeSize.value = annotations[selectedAnno.value].strokeSize * e.scale;
         }
       }
     })
@@ -382,7 +381,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       if ('text' in annotations[selectedAnno.value]) {
         (oldAnno[selectedAnno.value] as textInfo) = { ...(oldAnno[selectedAnno.value] as textInfo), x: mutatedx.value, y: mutatedy.value, strokeSize: mutatedStrokeSize.value }
       } else {
-        (oldAnno[selectedAnno.value] as pathInfo) = { ...(oldAnno[selectedAnno.value] as pathInfo), path: mutatedCurDrawn.value }
+        (oldAnno[selectedAnno.value] as pathInfo) = { ...(oldAnno[selectedAnno.value] as pathInfo), path: mutatedCurDrawn.value, strokeSize: mutatedStrokeSize.value }
       }
       runOnJS(setAnnotations)(oldAnno);
     })
@@ -551,7 +550,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
                     <Path
                       path={mutatedCurDrawn}
                       style="stroke"
-                      strokeWidth={annotations[pathSelected].strokeSize}
+                      strokeWidth={mutatedStrokeSize}
                       strokeCap="round"
                       color={selectedColor}
                     />
