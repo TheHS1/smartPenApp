@@ -37,12 +37,14 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   enum actions {
     addAnnotation,
     deleteAnnotation,
-    clear
+    clear,
+    editAnnotation,
   }
 
   interface history {
     action: actions;
     annotations?: annotation[];
+    index?: number;
   }
 
   const [hist, setHist] = useState<history[]>([]);
@@ -161,6 +163,32 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.clear }]);
         setAnnotations(last.annotations.slice());
         break;
+      case actions.editAnnotation:
+        if (!last.annotations || last.index === undefined)
+          return;
+
+        if (last.index === pathSelected) {
+          if ('text' in annotations[last.index]) {
+            const textAnno = last.annotations[0] as textInfo;
+            const paragraph = makeSkiaParagraph(textAnno.text, textAnno.color, textAnno.strokeSize);
+            paragraph.layout(300);
+            mutatedx.value = textAnno.x;
+            mutatedy.value = textAnno.y;
+            selected.value = { x: textAnno.x, y: textAnno.y, width: paragraph.getLongestLine(), height: paragraph.getHeight() }
+          } else {
+            const pathAnno = last.annotations[0] as pathInfo;
+            mutatedCurDrawn.value = pathAnno.path;
+            selected.value = Skia.Path.MakeFromSVGString(pathAnno.path)?.getBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
+          }
+          selectedColor.value = last.annotations[0].color;
+          mutatedStrokeSize.value = last.annotations[0].strokeSize;
+        }
+
+        const ind = last.index;
+        setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.editAnnotation, annotations: [annotations[ind]], index: ind }]);
+        const oldAnno = [...annotations];
+        oldAnno[ind] = last.annotations[0];
+        setAnnotations(oldAnno);
     }
 
     setHist(curHist);
@@ -185,6 +213,14 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations.slice() }]);
         setAnnotations([]);
         break;
+      case actions.editAnnotation:
+        if (!first.annotations || !first.index)
+          return;
+        const ind = first.index;
+        setHist((prevRedoHist) => [...prevRedoHist, { action: actions.editAnnotation, annotations: [annotations[ind]], index: ind }]);
+        const oldAnno = [...annotations];
+        oldAnno[ind] = first.annotations[0];
+        setAnnotations(oldAnno);
     }
 
     setRedoHist(curHist);
@@ -195,6 +231,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       const oldAnno = [...annotations];
       const annotation = (oldAnno[selectedAnno.value] as pathInfo);
       oldAnno[selectedAnno.value] = { ...(annotation), color: selectedColor.value };
+      setHist((prevHist) => [...prevHist, { action: actions.editAnnotation, annotations: [annotations[selectedAnno.value]], index: selectedAnno.value }]);
       setAnnotations(oldAnno);
     } else {
       setColor(selectedColor.value);
@@ -377,6 +414,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       if (selectedAnno.value < 0 || selectedAnno.value >= annotations.length) {
         return;
       }
+      runOnJS(setHist)([...hist, { action: actions.editAnnotation, annotations: [annotations[selectedAnno.value]], index: selectedAnno.value }]);
       const oldAnno = [...annotations];
       if ('text' in annotations[selectedAnno.value]) {
         (oldAnno[selectedAnno.value] as textInfo) = { ...(oldAnno[selectedAnno.value] as textInfo), x: mutatedx.value, y: mutatedy.value, strokeSize: mutatedStrokeSize.value }
@@ -412,6 +450,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       if (selectedAnno.value < 0 || selectedAnno.value >= annotations.length) {
         return;
       }
+      runOnJS(setHist)([...hist, { action: actions.editAnnotation, annotations: [annotations[selectedAnno.value]], index: selectedAnno.value }]);
       const oldAnno = [...annotations];
       if ('text' in oldAnno[selectedAnno.value]) {
         (oldAnno[selectedAnno.value] as textInfo) = { ...(oldAnno[selectedAnno.value] as textInfo), x: mutatedx.value, y: mutatedy.value }
@@ -539,7 +578,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
               <RenderPreview />
               {pathSelected >= 0 && selTool === tools.edit && (
                 <Group>
-                  {'text' in annotations[pathSelected] ? (
+                  {annotations[pathSelected] && 'text' in annotations[pathSelected] ? (
                     <Paragraph
                       paragraph={makeParagraph(mutatedText.value, selectedColor.value, mutatedStrokeSize.value)}
                       x={mutatedx}
