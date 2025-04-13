@@ -4,7 +4,7 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import ColorPicker, { Panel1, Swatches, Preview, HueSlider, returnedResults } from 'reanimated-color-picker';
 import { ReanimatedLogLevel, configureReanimatedLogger, runOnJS, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import AnnotationTools from "./AnnotationTools";
-import { Canvas, Group, Path, SkPath, Skia, Paragraph } from "@shopify/react-native-skia";
+import { Canvas, Group, Path, SkPath, Skia, Paragraph, useCanvasRef, SkiaDomView } from "@shopify/react-native-skia";
 import { annotation, pathInfo, textInfo } from "../types";
 
 configureReanimatedLogger({
@@ -23,9 +23,10 @@ interface annotationProps {
   annotations: annotation[];
   saveAnnotations: () => void;
   setAnnotations: (prevAnnotation: annotation[]) => void;
+  canvRef: React.RefObject<SkiaDomView>;
 }
 
-export default function Annotations({ data, annotations, saveAnnotations, setAnnotations }: annotationProps) {
+export default function Annotations({ data, annotations, saveAnnotations, setAnnotations, canvRef }: annotationProps) {
   // Save annotations to file when they're changed
   useEffect(() => {
     saveAnnotations();
@@ -340,6 +341,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
           <Canvas
             style={{ flex: 1 }}
             className="absolute"
+            ref={canvRef}
           >
             <Group transform={transform}>
               {/* Show saved page strokes */}
