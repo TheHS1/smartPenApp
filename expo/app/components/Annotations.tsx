@@ -82,6 +82,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const mutatedText = useSharedValue<string>("");
   const mutatedx = useSharedValue<number>(0);
   const mutatedy = useSharedValue<number>(0);
+  const mutatedStrokeSize = useSharedValue<number>(0);
 
   const changeTool = (tool: tools) => {
     setAnnoSelected(-1);
@@ -211,12 +212,6 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const setStroke = () => {
     const size = Math.max((strokeSize + 2) % maxStroke, 1);
-    if (selTool === tools.edit) {
-      const oldAnno = [...annotations];
-      const annotation = (oldAnno[selectedAnno.value] as pathInfo);
-      oldAnno[selectedAnno.value] = { ...(annotation), strokeSize: size }
-      setAnnotations(oldAnno);
-    }
     setStrokeSize(size);
   }
 
@@ -323,11 +318,11 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
             mutatedText.value = (anno as textInfo).text;
             mutatedx.value = (anno as textInfo).x;
             mutatedy.value = (anno as textInfo).y;
+            mutatedStrokeSize.value = anno.strokeSize;
           } else {
             anno = annos[i];
             mutatedCurDrawn.value = (anno as pathInfo).path;
           }
-          runOnJS(setStrokeSize)(anno.strokeSize);
           selectedColor.value = anno.color
           break;
         }
@@ -363,8 +358,8 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
         // Adjust stroke size for scaling
         const textAnno = (annotations[selectedAnno.value] as textInfo);
-        const paragraph = makeSkiaParagraph(textAnno.text, textAnno.color, strokeSize * scaleFactor);
-        runOnJS(setStrokeSize)(strokeSize * scaleFactor);
+        const paragraph = makeSkiaParagraph(textAnno.text, textAnno.color, mutatedStrokeSize.value * scaleFactor);
+        mutatedStrokeSize.value = mutatedStrokeSize.value * scaleFactor;
         paragraph.layout(300);
         selected.value = { x: mutatedx.value, y: mutatedy.value, width: paragraph.getLongestLine(), height: paragraph.getHeight() };
       } else {
@@ -385,7 +380,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       }
       const oldAnno = [...annotations];
       if ('text' in annotations[selectedAnno.value]) {
-        (oldAnno[selectedAnno.value] as textInfo) = { ...(oldAnno[selectedAnno.value] as textInfo), x: mutatedx.value, y: mutatedy.value, strokeSize: strokeSize }
+        (oldAnno[selectedAnno.value] as textInfo) = { ...(oldAnno[selectedAnno.value] as textInfo), x: mutatedx.value, y: mutatedy.value, strokeSize: mutatedStrokeSize.value }
       } else {
         (oldAnno[selectedAnno.value] as pathInfo) = { ...(oldAnno[selectedAnno.value] as pathInfo), path: mutatedCurDrawn.value }
       }
@@ -547,7 +542,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
                 <Group>
                   {'text' in annotations[pathSelected] ? (
                     <Paragraph
-                      paragraph={makeParagraph(mutatedText.value, selectedColor.value, strokeSize)}
+                      paragraph={makeParagraph(mutatedText.value, selectedColor.value, mutatedStrokeSize.value)}
                       x={mutatedx}
                       y={mutatedy}
                       width={300}
@@ -556,7 +551,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
                     <Path
                       path={mutatedCurDrawn}
                       style="stroke"
-                      strokeWidth={strokeSize}
+                      strokeWidth={annotations[pathSelected].strokeSize}
                       strokeCap="round"
                       color={selectedColor}
                     />
