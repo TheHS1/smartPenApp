@@ -15,9 +15,11 @@ interface toolProps {
   toggleShowAnnotation: () => void;
   toggleShowPicker: () => void;
   undoDraw: () => void;
+  redoAvailable: boolean;
+  undoAvailable: boolean;
 }
 
-export default function AnnotationTools({ showAnnotation, strokeSize, selTool, color, clearPath, redoDraw, changeTool, setStroke, toggleShowAnnotation, toggleShowPicker, undoDraw }: toolProps) {
+export default function AnnotationTools({ showAnnotation, strokeSize, selTool, color, clearPath, redoAvailable, redoDraw, changeTool, setStroke, toggleShowAnnotation, toggleShowPicker, undoAvailable, undoDraw }: toolProps) {
   return (
     <View className="flex-initial flex flex-row p-2 items-end">
 
@@ -55,11 +57,11 @@ export default function AnnotationTools({ showAnnotation, strokeSize, selTool, c
 
       {/*undoRedo*/}
       <TouchableOpacity onPress={undoDraw} className="flex-1 items-center">
-        <Ionicons name="arrow-undo" size={32} color="black" />
+        <Ionicons name="arrow-undo" size={32} color={undoAvailable ? "black" : "gray"} />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={redoDraw} className="flex-1 items-center">
-        <Ionicons name="arrow-redo" size={32} color="black" />
+        <Ionicons name="arrow-redo" size={32} color={redoAvailable ? "black" : "gray"} />
       </TouchableOpacity>
 
       {/*clear*/}

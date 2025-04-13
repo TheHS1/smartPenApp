@@ -563,6 +563,8 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         redoDraw={redoDraw}
         clearPath={clearAnnotation}
         toggleShowAnnotation={toggleShowAnnotation}
+        redoAvailable={redoHist.length > 0}
+        undoAvailable={hist.length > 0}
       />
       <GestureHandlerRootView>
         <GestureDetector gesture={selTool != tools.edit ? canvasGes : editGes}>
