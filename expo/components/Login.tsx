@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useNavigation } from "expo-router";
+import { useRouter } from "expo-router";
 import { Button, Image, Text, TextInput, View, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Login() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +21,7 @@ export default function Login() {
       // Placeholder for authentication logic (replace with actual API call)
       const isAuthenticated = username === "intellisync" && password === "Universe123"; // Replace with real authentication logic
       if (isAuthenticated) {
-        navigation.navigate("Main");
+        router.navigate("/documents");
       } else {
         Alert.alert("Login Failed", "Invalid username or password.");
       }

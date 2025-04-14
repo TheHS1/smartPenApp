@@ -1,16 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { FlatList, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import PagePreview from "../components/PagePreview";
+import PagePreview from "@/components/PagePreview";
 import { useIsFocused } from "@react-navigation/native";
-import { getFiles } from "../utils";
-import { fileInfo } from "../types";
+import { getFiles } from "@/utils";
+import { fileInfo } from "@/types";
+import React from "react";
 
-export default function Documents() {
-  const insets = useSafeAreaInsets();
+export default function Index() {
+  const router = useRouter();
   const navigation = useNavigation();
   const [documents, setDocuments] = useState<Map<string, fileInfo>>(new Map());
   const focused = useIsFocused();
@@ -46,7 +46,7 @@ export default function Documents() {
 
   const openFile = async (file: string) => {
     // pass file name to annotation component
-    navigation.navigate('Editor', { fileName: file });
+    router.push({ pathname: '/documents/(tabs)/', params: { fileName: file } })
   }
 
   const deleteFile = async (file: string) => {
@@ -93,12 +93,6 @@ export default function Documents() {
 
   return (
     <View
-      style={{
-        paddingTop: insets.top,
-        paddingBottom: insets.bottom,
-        paddingLeft: insets.left,
-        paddingRight: insets.right
-      }}
       className="h-full w-full">
       <FlatList
         data={Array.from(documents)}

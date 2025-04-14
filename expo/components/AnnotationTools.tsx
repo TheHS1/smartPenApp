@@ -21,7 +21,7 @@ interface toolProps {
 
 export default function AnnotationTools({ showAnnotation, strokeSize, selTool, color, clearPath, redoAvailable, redoDraw, changeTool, setStroke, toggleShowAnnotation, toggleShowPicker, undoAvailable, undoDraw }: toolProps) {
   return (
-    <View className="flex-initial flex flex-row p-2 items-end">
+    <View className="h-14 flex flex-row p-2">
 
       {/*paintTool*/}
       <TouchableOpacity onPress={toggleShowPicker} className="flex-1 items-center">

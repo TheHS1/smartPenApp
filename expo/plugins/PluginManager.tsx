@@ -3,8 +3,8 @@ import React, { ComponentType, useEffect } from "react";
 import { FC, useCallback, useState } from "react";
 import { FlatList, Image, ListRenderItemInfo, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
-import plugArray from "./plugins/index";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import plugArray from "@/plugins/index";
 import TextRecognition from '@react-native-ml-kit/text-recognition';
 import * as FileSystem from 'expo-file-system';
 
@@ -101,6 +101,7 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
 
 export default function DeviceConnectionModal({ visible, closeModal, canvasSnap }: PlugProps) {
   const [ocrData, setOcrData] = useState<String>("");
+  const insets = useSafeAreaInsets();
 
 
   const getData = async () => {
@@ -140,11 +141,18 @@ export default function DeviceConnectionModal({ visible, closeModal, canvasSnap 
       animationType="slide"
       visible={visible}
     >
-      <SafeAreaView>
+      <SafeAreaView
+        style={{
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        }}
+      >
         <View
           className="m-4 h-full flex"
         >
-          <Text className="flex-initial text-3xl">Available Plugins</Text>
+          <Text className="flex-initial text-3xl text-center">Available Plugins</Text>
           <TouchableOpacity
             className="flex-initial pt-2"
             onPress={closeModal}>
