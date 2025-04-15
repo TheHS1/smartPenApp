@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { Button, Image, Text, TextInput, View, Alert } from "react-native";
+import {
+  Alert,
+  Image,
+  Text,
+  TextInput,
+  View,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ImageBackground,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Login() {
@@ -15,7 +25,7 @@ export default function Login() {
       return;
     }
 
-    setError(""); // Clear previous errors
+    setError("");
 
     try {
       // Placeholder for authentication logic (replace with actual API call)
@@ -31,33 +41,57 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView className="flex h-full w-full">
-      <Image
-        className="m-auto w-4/5 h-auto"
-        resizeMode={"contain"}
-        source={require("@/assets/images/logo.png")}
-      />
-      <View className="flex-1 items-center">
-        <Text className="my-5 text-3xl">Login</Text>
+    <SafeAreaView className="flex-1" edges={['left', 'right']}>
+      <ImageBackground
+        source={require("@/assets/images/background.png")}
+        resizeMode="cover"
+        className="flex-1"
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1 items-center justify-center px-6"
+        >
+          <View className="w-full bg-white p-6 rounded-2xl shadow-lg">
+            <View className="flex items-center justify-center mb-10">
+              <Image
+                source={require("@/assets/images/logo.png")}
+                resizeMode="contain"
+                className="w-full h-24"
+              />
+            </View>
 
-        {error ? <Text className="text-red-500">{error}</Text> : null}
+            {error ? (
+              <Text className="text-red-500 text-center mb-2">{error}</Text>
+            ) : null}
 
-        <TextInput
-          placeholder="Enter your username"
-          className="mb-3 bg-gray-100 p-2 border-2 w-4/5"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder="Enter your password"
-          className="bg-gray-100 p-2 border-2 w-4/5"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-      </View>
-      <Button onPress={handleLogin} title="Login" />
+            <TextInput
+              className="bg-gray-100 p-3 rounded-lg border border-gray-300 mb-3 text-base"
+              placeholder="Username"
+              placeholderTextColor="#999"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
+            <TextInput
+              className="bg-gray-100 p-3 rounded-lg border border-gray-300 mb-3 text-base"
+              placeholder="Password"
+              placeholderTextColor="#999"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+
+            <TouchableOpacity
+              onPress={handleLogin}
+              className="bg-blue-500 py-3 rounded-lg mt-2"
+            >
+              <Text className="text-white text-center text-base font-semibold">
+                Login
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </ImageBackground>
     </SafeAreaView>
   );
 }
