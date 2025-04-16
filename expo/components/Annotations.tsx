@@ -26,9 +26,10 @@ interface annotationProps {
   saveAnnotations: () => void;
   setAnnotations: (prevAnnotation: annotation[]) => void;
   canvRef: React.RefObject<SkiaDomView>;
+  resetPenPos: () => Promise<void>;
 }
 
-export default function Annotations({ data, annotations, saveAnnotations, setAnnotations, canvRef }: annotationProps) {
+export default function Annotations({ data, annotations, saveAnnotations, setAnnotations, canvRef, resetPenPos }: annotationProps) {
   // Save annotations to file when they're changed
   useEffect(() => {
     saveAnnotations();
@@ -613,7 +614,14 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
           </Canvas>
         </GestureDetector>
       </GestureHandlerRootView>
-      <Button title="Reset" onPress={resetTransform} />
+      <View className="flex flex-row w-full">
+        <View className="flex-1">
+          <Button title="Reset Canvas" onPress={resetTransform} />
+        </View>
+        <View className="flex-1">
+          <Button title="Reset Pen Position" onPress={resetPenPos} />
+        </View>
+      </View>
       <Modal className="flex items-center w-full" visible={showPicker} animationType='slide' transparent={true}>
         <SafeAreaView>
           <View className="flex items-center">

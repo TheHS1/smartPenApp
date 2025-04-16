@@ -56,6 +56,7 @@ export default function Main() {
     connectedDevice,
     data,
     disconnectFromDevice,
+    resetPenPos
   } = useBLE();
 
 
@@ -176,7 +177,7 @@ export default function Main() {
                 deletePage={deletePage}
               />
             )}
-            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} />
+            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} resetPenPos={resetPenPos} />
           </View>
           <PluginManager
             closeModal={() => setShowPlugin(false)}
