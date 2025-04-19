@@ -9,6 +9,7 @@ expo/npm-debug.*
 *.mobileprovision
 *.orig.*
 expo/web-build/
+expo/.env
 
 # macOS
 .DS_Store
