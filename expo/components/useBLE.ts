@@ -21,6 +21,7 @@ interface BluetoothLowEnergyApi {
     connectedDevice: Device | null;
     data: string;
     disconnectFromDevice(): void;
+    resetPenPos: () => Promise<void>;
 }
 
 const expoGo = Constants.executionEnvironment === 'storeClient'
@@ -141,7 +142,15 @@ export default function useBLE(): BluetoothLowEnergyApi {
 
         const rawData = base64.decode(characeristic.value)
         console.log(rawData)
-        setData((oldData) => oldData + rawData)
+        setData((oldData) => {
+            if (rawData.charAt(0) == "M") {
+                return (oldData.substr(0, oldData.lastIndexOf(" ")) + rawData)
+            } else if (oldData.length == 0) {
+                console.log("M" + rawData.substr(rawData.indexOf(" ") + 1));
+                return "M" + rawData.substr(rawData.indexOf(" ") + 1);
+            }
+            return oldData + rawData;
+        })
     }
 
     async function sleep(ms: number): Promise<void> {
@@ -152,6 +161,14 @@ export default function useBLE(): BluetoothLowEnergyApi {
         if (device) {
             device.monitorCharacteristicForService(
                 DATA_UUID, DATA_CHARACTERISTIC, onDataUpdate);
+        } else {
+            console.log("No Device Connected")
+        }
+    }
+
+    const resetPenPos = async () => {
+        if (connectedDevice) {
+            const response = await connectedDevice.writeCharacteristicWithResponseForService(DATA_UUID, DATA_CHARACTERISTIC, "");
         } else {
             console.log("No Device Connected")
         }
@@ -174,7 +191,8 @@ export default function useBLE(): BluetoothLowEnergyApi {
         connectToDevice,
         connectedDevice,
         data,
-        disconnectFromDevice
+        disconnectFromDevice,
+        resetPenPos
     }
 }
 

@@ -1,26 +1,27 @@
 import { useState, useEffect } from "react";
 import { TouchableOpacity, View, Text, Button } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Device } from "react-native-ble-plx";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "expo-router";
+import { useLocalSearchParams, useNavigation } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Annotations from "../components/Annotations";
-import DeviceModal from "./DeviceConnectionModal";
-import useBLE from '../useBLE'
-import PageSelector from "../components/PageSelector";
-import { fileInfo, annotation, } from "../types";
-import { getFiles } from "../utils";
+import Annotations from "@/components/Annotations";
+import DeviceModal from "@/components/DeviceConnectionModal";
+import useBLE from '@/components/useBLE'
+import PageSelector from "@/components/PageSelector";
+import { fileInfo, annotation, } from "@/types";
+import { getFiles } from "@/utils";
 import Constants from "expo-constants";
-import PluginManager from "../PluginManager";
+import PluginManager from "@/plugins/PluginManager";
+import { useCanvasRef } from "@shopify/react-native-skia";
+import * as FileSystem from 'expo-file-system';
 
-export default function Main({ route }) {
-  const { fileName } = route.params;
-  const insets = useSafeAreaInsets();
+export default function Main() {
+  const { fileName } = useLocalSearchParams<{ fileName: string; }>();
   const navigation = useNavigation();
 
   const [fInfo, setFileInfo] = useState<fileInfo>({ pages: [] });
   const [annotations, setAnnotations] = useState<annotation[]>([]);
+  const ref = useCanvasRef();
 
   const [showPageSelector, setShowPageSelector] = useState<boolean>(false);
   const [bypass, setBypass] = useState<boolean>(false);
@@ -55,6 +56,7 @@ export default function Main({ route }) {
     connectedDevice,
     data,
     disconnectFromDevice,
+    resetPenPos
   } = useBLE();
 
 
@@ -145,14 +147,23 @@ export default function Main({ route }) {
       .catch(console.error);
   }
 
+  const canvasSnap = async () => {
+    const image = await ref.current?.makeImageSnapshotAsync();
+    if (image) {
+      const bytes = image.encodeToBase64();
+      if (bytes) {
+        await FileSystem.writeAsStringAsync(FileSystem.documentDirectory + 'canvas.png', bytes, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
   return (
     <View
-      style={{
-        paddingTop: insets.top,
-        paddingBottom: insets.bottom,
-        paddingLeft: insets.left,
-        paddingRight: insets.right
-      }}
       className="h-full w-full">
       {(expoGo || connectedDevice || bypass) ? (
         <View
@@ -166,11 +177,12 @@ export default function Main({ route }) {
                 deletePage={deletePage}
               />
             )}
-            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} />
+            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} resetPenPos={resetPenPos} />
           </View>
           <PluginManager
             closeModal={() => setShowPlugin(false)}
             visible={showPlugin}
+            canvasSnap={canvasSnap}
           />
         </View>
       ) : (

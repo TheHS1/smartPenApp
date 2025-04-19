@@ -10,16 +10,18 @@ interface toolProps {
   color: string;
   clearPath: () => void;
   redoDraw: () => void;
-  setSelTool: (set: tools) => void;
+  changeTool: (set: tools) => void;
   setStroke: () => void;
   toggleShowAnnotation: () => void;
   toggleShowPicker: () => void;
   undoDraw: () => void;
+  redoAvailable: boolean;
+  undoAvailable: boolean;
 }
 
-export default function AnnotationTools({ showAnnotation, strokeSize, selTool, color, clearPath, redoDraw, setSelTool, setStroke, toggleShowAnnotation, toggleShowPicker, undoDraw }: toolProps) {
+export default function AnnotationTools({ showAnnotation, strokeSize, selTool, color, clearPath, redoAvailable, redoDraw, changeTool, setStroke, toggleShowAnnotation, toggleShowPicker, undoAvailable, undoDraw }: toolProps) {
   return (
-    <View className="flex-initial flex flex-row p-2 items-end">
+    <View className="h-14 flex flex-row p-2">
 
       {/*paintTool*/}
       <TouchableOpacity onPress={toggleShowPicker} className="flex-1 items-center">
@@ -34,27 +36,32 @@ export default function AnnotationTools({ showAnnotation, strokeSize, selTool, c
       </TouchableOpacity>
 
       {/*drawTool*/}
-      <TouchableOpacity onPress={() => setSelTool(tools.draw)} className="flex-1 items-center">
+      <TouchableOpacity onPress={() => changeTool(tools.draw)} className="flex-1 items-center">
         <Ionicons name="brush" size={32} color={(selTool === tools.draw) ? "blue" : "black"} />
       </TouchableOpacity>
 
       {/*eraseTool*/}
-      <TouchableOpacity onPress={() => setSelTool(tools.erase)} className="flex-1 items-center">
+      <TouchableOpacity onPress={() => changeTool(tools.erase)} className="flex-1 items-center">
         <Ionicons name="beaker-sharp" size={32} color={(selTool === tools.erase) ? "blue" : "black"} />
       </TouchableOpacity>
 
       {/*Text tool*/}
-      <TouchableOpacity onPress={() => setSelTool(tools.text)} className="flex-1 items-center">
+      <TouchableOpacity onPress={() => changeTool(tools.text)} className="flex-1 items-center">
         <Ionicons name="text-outline" size={32} color={(selTool === tools.text) ? "blue" : "black"} />
+      </TouchableOpacity>
+
+      {/*Edit tool*/}
+      <TouchableOpacity onPress={() => changeTool(tools.edit)} className="flex-1 items-center">
+        <Ionicons name="create-outline" size={32} color={(selTool === tools.edit) ? "blue" : "black"} />
       </TouchableOpacity>
 
       {/*undoRedo*/}
       <TouchableOpacity onPress={undoDraw} className="flex-1 items-center">
-        <Ionicons name="arrow-undo" size={32} color="black" />
+        <Ionicons name="arrow-undo" size={32} color={undoAvailable ? "black" : "gray"} />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={redoDraw} className="flex-1 items-center">
-        <Ionicons name="arrow-redo" size={32} color="black" />
+        <Ionicons name="arrow-redo" size={32} color={redoAvailable ? "black" : "gray"} />
       </TouchableOpacity>
 
       {/*clear*/}

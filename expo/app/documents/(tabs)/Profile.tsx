@@ -5,7 +5,6 @@ import { useNavigation } from "expo-router";
 import { useEffect } from "react";
 
 export default function Profile() {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
   // Show bar in profile page
@@ -17,12 +16,6 @@ export default function Profile() {
 
   return (
     <View
-      style={{
-        paddingTop: insets.top,
-        paddingBottom: insets.bottom,
-        paddingLeft: insets.left,
-        paddingRight: insets.right
-      }}
       className="flex">
       <View className="border border-gray-300 flex-initial flex flex-row items-center p-4">
         <Ionicons className="flex-initial" name="person-circle" size={72} color={"blue"} />
