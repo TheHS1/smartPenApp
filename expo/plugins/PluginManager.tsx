@@ -1,12 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { ComponentType, useEffect } from "react";
+import React, { ComponentType } from "react";
 import { FC, useCallback, useState } from "react";
-import { FlatList, Image, ListRenderItemInfo, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, ListRenderItemInfo, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import plugArray from "@/plugins/index";
-import TextRecognition from '@react-native-ml-kit/text-recognition';
-import * as FileSystem from 'expo-file-system';
+import { annotation, pathInfo, textInfo } from "@/types";
 
 export interface PlugInfo {
   title: string;
@@ -15,19 +14,14 @@ export interface PlugInfo {
   Func: ComponentType;
 }
 
-export interface PlugAndAnno {
-  plug: PlugInfo;
-  canvasSnap: () => Promise<boolean>;
-}
-
 interface PlugProps {
   visible: boolean;
   closeModal: () => void;
-  canvasSnap: () => Promise<boolean>;
+  annotations: annotation[];
 }
 
 type devLIProps = {
-  item: ListRenderItemInfo<PlugAndAnno>;
+  item: ListRenderItemInfo<PlugInfo>;
 }
 
 const plugins: PlugInfo[] = plugArray();
@@ -36,7 +30,7 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
   const { item } = props;
   const [showDescription, setShowDescription] = useState<boolean>(false);
   const descriptionHeight = useSharedValue<number>(0);
-  const [enabled, setEnabled] = useState<boolean>(item.item.plug.enabled);
+  const [enabled, setEnabled] = useState<boolean>(item.item.enabled);
   const [showSettings, setShowSettings] = useState<boolean>();
 
   // Update height based on whether the description is shown or not
@@ -56,7 +50,7 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
 
   const toggleEnabled = () => {
     setEnabled(!enabled);
-    item.item.plug.enabled = !item.item.plug.enabled;
+    item.item.enabled = !item.item.enabled;
     setShowSettings(false);
   }
 
@@ -70,7 +64,7 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
         <TouchableOpacity className="flex-initial p-2" onPress={() => setShowDescription(!showDescription)}>
           <Ionicons name={showDescription ? "chevron-down-outline" : "chevron-forward-outline"} size={18} color="black" />
         </TouchableOpacity>
-        <Text className="flex-1 text-base font-bold">{item.item.plug.title}</Text>
+        <Text className="flex-1 text-base font-bold">{item.item.title}</Text>
         {(enabled && showDescription) && (
           <TouchableOpacity
             className="flex-initial"
@@ -89,9 +83,9 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
       <Animated.View style={animatedDescriptionStyle}>
         <ScrollView>
           {showSettings ? (
-            <item.item.plug.Func />
+            <item.item.Func />
           ) :
-            <Text className="text-base text-gray-500">{item.item.plug.description}</Text>
+            <Text className="text-base text-gray-500">{item.item.description}</Text>
           }
         </ScrollView>
       </Animated.View>
@@ -99,26 +93,55 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
   );
 }
 
-export default function DeviceConnectionModal({ visible, closeModal, canvasSnap }: PlugProps) {
+export default function DeviceConnectionModal({ visible, closeModal, annotations }: PlugProps) {
   const [ocrData, setOcrData] = useState<String>("");
   const insets = useSafeAreaInsets();
 
-
   const getData = async () => {
-    const saved = await canvasSnap();
-    if (saved) {
-      try {
-        const path = FileSystem.documentDirectory + 'canvas.png';
-        const result = await TextRecognition.recognize(path);
-        setOcrData(result.text);
-      } catch (error) {
-        console.error(error);
+    const jsonAnnotations = annotations.map(anno => {
+      if ('text' in anno) {
+        const textAnno = anno as textInfo;
+        return {
+          type: "text",
+          data: textAnno.text,
+          x: textAnno.x,
+          y: textAnno.y,
+          color: textAnno.color,
+          strokeSize: textAnno.strokeSize
+        }
+      } else {
+        const pathAnno = anno as pathInfo;
+        return {
+          type: "path",
+          data: pathAnno.path,
+          erase: pathAnno.erase,
+          color: pathAnno.color,
+          strokeSize: pathAnno.strokeSize
+        }
       }
+    });
+
+    try {
+      fetch("http://192.168.1.220:5000/process_svg", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ "svgPaths": jsonAnnotations, "plugins": { "enabled": {} } })
+      })
+        .then(response => {
+          return response.json();
+        })
+        .then(data => {
+          setOcrData(data["ocr_results"]);
+        })
+    } catch (error) {
+      console.error(error);
     }
   };
 
   const renderListItem = useCallback(
-    (item: ListRenderItemInfo<PlugAndAnno>) => {
+    (item: ListRenderItemInfo<PlugInfo>) => {
       return (
         <PlugLI
           item={item}
@@ -127,14 +150,6 @@ export default function DeviceConnectionModal({ visible, closeModal, canvasSnap 
     },
     []
   );
-
-  const listData = () => {
-    let data: PlugAndAnno[] = [];
-    for (let plugin of plugins) {
-      data.push({ plug: plugin, canvasSnap: canvasSnap })
-    }
-    return data;
-  }
 
   return (
     <Modal
@@ -165,7 +180,7 @@ export default function DeviceConnectionModal({ visible, closeModal, canvasSnap 
           </TouchableOpacity>
           <Text>{ocrData}</Text>
           <FlatList
-            data={listData()}
+            data={plugins}
             renderItem={renderListItem}
             className="flex-1 pt-2"
           />

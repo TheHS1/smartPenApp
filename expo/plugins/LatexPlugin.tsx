@@ -1,5 +1,5 @@
 import { Text } from "react-native"
-import { PlugInfo } from "../PluginManager"
+import { PlugInfo } from "@/plugins/PluginManager"
 
 export default function LatexPlugin(): PlugInfo {
   const title = "Latex Plugin"
