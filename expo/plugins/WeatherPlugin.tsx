@@ -1,5 +1,5 @@
 import { Text, View } from "react-native"
-import { PlugInfo } from "../PluginManager"
+import { PlugInfo } from "@/plugins/PluginManager"
 import { useEffect, useState } from "react"
 
 export default function LatexPlugin(): PlugInfo {

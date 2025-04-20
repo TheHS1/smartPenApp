@@ -182,7 +182,7 @@ export default function Main() {
           <PluginManager
             closeModal={() => setShowPlugin(false)}
             visible={showPlugin}
-            canvasSnap={canvasSnap}
+            annotations={annotations}
           />
         </View>
       ) : (
