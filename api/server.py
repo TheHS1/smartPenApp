@@ -33,14 +33,19 @@ def create_svg_string(paths, viewbox, width=SVG_WIDTH, height=SVG_HEIGHT):
 
     # Add path elements based on type
     for path_info in paths:
+        strokeSize = path_info.get("strokeSize", 1);
+        color = path_info.get("color", "black")
         if path_info.get("type") == "text":
             x = path_info.get("x", 0)
             y = path_info.get("y", 0)
             content = path_info.get("data", "")
-            svg_elements.append(f'<text x="{x}" y="{y}" fill="black">{content}</text>')
+            dy=strokeSize*0.75
+            svg_elements.append(f'<text x="{x}" y="{y}" fill="{color}" font-size="{strokeSize}" dy="{dy}">{content}</text>')
         else:
             path_data = path_info.get("data", "")
-            svg_elements.append(f'<path d="{path_data}" stroke="black" fill="none" />')
+            erase = path_info.get("erase", "false")
+            finalColor = "white" if erase else color
+            svg_elements.append(f'<path d="{path_data}" stroke="{finalColor}" fill="none" stroke-width="{strokeSize}"/>')
 
     svg_footer = '</svg>'
     return "\n".join([svg_header] + svg_elements + [svg_footer])
@@ -69,7 +74,6 @@ def process_svg_request():
     # generate the svg
     try:
         svg_string = create_svg_string(svg_paths, viewbox)
-        print(svg_string)
     except Exception as e:
         logging.exception("Error generating SVG string")
         return jsonify({"error": f"Failed to generate SVG: {e}"}), 500
