@@ -19,3 +19,6 @@ expo/.env
 
 expo/expo-env.d.ts
 # @end expo-cli
+
+api/tmp
+*__pycache__*

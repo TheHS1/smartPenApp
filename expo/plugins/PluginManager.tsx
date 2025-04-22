@@ -1,11 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { ComponentType } from "react";
 import { FC, useCallback, useState } from "react";
-import { FlatList, ListRenderItemInfo, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, FlatList, ListRenderItemInfo, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import plugArray from "@/plugins/index";
 import { annotation, pathInfo, textInfo } from "@/types";
+import Pdf, { Source } from 'react-native-pdf';
+import RNFetchBlob from 'react-native-blob-util';
+import * as FileSystem from 'expo-file-system';
+import { Base64 } from "react-native-ble-plx";
+
 
 export interface PlugInfo {
   title: string;
@@ -96,6 +101,40 @@ const PlugLI: FC<devLIProps> = (props: devLIProps) => {
 export default function DeviceConnectionModal({ visible, closeModal, annotations }: PlugProps) {
   const [ocrData, setOcrData] = useState<String>("");
   const insets = useSafeAreaInsets();
+  const [shownPDF, setShownPDF] = useState<Source>({});
+  const [pdfVersion, setPdfVersion] = useState<number>(0);
+
+  const savePDF = async (pdfData: Base64, fileUri: string) => {
+    try {
+      const directory = FileSystem.documentDirectory + fileUri;
+      await FileSystem.writeAsStringAsync(directory, pdfData, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      return fileUri;
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          const base64String = reader.result.split(',')[1];
+          resolve(base64String);
+        } else {
+          reject(new Error('Failed to convert blob to base64'));
+        }
+      };
+
+      reader.onerror = (error) => {
+        reject(error);
+      };
+
+      reader.readAsDataURL(blob);
+    });
+  };
 
   const getData = async () => {
     const jsonAnnotations = annotations.map(anno => {
@@ -127,14 +166,30 @@ export default function DeviceConnectionModal({ visible, closeModal, annotations
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ "svgPaths": jsonAnnotations, "plugins": { "enabled": {} } })
+        body: JSON.stringify({ "svgPaths": jsonAnnotations, "plugins": { "enabled": [{ "name": "latex" }, { "name": "sentiment" }] } })
       })
         .then(response => {
           return response.json();
         })
         .then(data => {
           setOcrData(data["ocr_results"]);
+          return fetch("http://192.168.1.220:5000/download-pdf/output.pdf");
         })
+        .then(response => {
+          return response.blob();
+        })
+        .then(blob => {
+          return blobToBase64(blob);
+        })
+        .then(base64Data => {
+          return savePDF(base64Data, 'output.pdf');
+        })
+        .then(uri => {
+          const path = `${FileSystem.documentDirectory}${uri}`;
+          setShownPDF({ uri: path });
+          setPdfVersion((old) => old + 1);
+        })
+
     } catch (error) {
       console.error(error);
     }
@@ -178,6 +233,11 @@ export default function DeviceConnectionModal({ visible, closeModal, annotations
             onPress={getData}>
             <Text>getData</Text>
           </TouchableOpacity>
+          <Pdf
+            key={pdfVersion}
+            source={shownPDF}
+            style={styles.pdf}
+          />
           <Text>{ocrData}</Text>
           <FlatList
             data={plugins}
@@ -189,3 +249,10 @@ export default function DeviceConnectionModal({ visible, closeModal, annotations
     </Modal>
   )
 }
+const styles = StyleSheet.create({
+  pdf: {
+    flex: 1,
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+  }
+});

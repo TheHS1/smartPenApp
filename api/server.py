@@ -1,11 +1,10 @@
 import cairosvg
-import io
-import json
 import logging
-from flask import Flask, request, jsonify
-import torch
-from transformers import AutoProcessor, AutoModelForCausalLM
-from PIL import Image
+from flask import Flask, request, jsonify, send_from_directory, current_app
+import os
+from latex_plugin import latex
+from ocr_model import ocr
+from sentiment_plugin import sentiment
 
 SVG_WIDTH = 500  # width of svg 
 SVG_HEIGHT = 500 # height of svg
@@ -15,54 +14,6 @@ PLUGIN_ORDER = [
     "sentiment",
     "latex",
 ]
-
-# hold ocr model so it doesn't have to be loaded over and over
-model = None
-processor = None
-
-def ocr(image_data_bytes):
-    image_file = io.BytesIO(image_data_bytes)
-    image = Image.open(image_file)
-    if image.mode == "RGBA":
-        # Create a new RGB image with a white background
-        rgb_image = Image.new("RGB", image.size, (255, 255, 255))
-        # Paste the RGBA image onto the white background
-        rgb_image.paste(image, mask=image.split()[3])  # Use the alpha channel as a mask
-        image = rgb_image
-    elif image.mode != "RGB":
-        image = image.convert("RGB")  # Convert other modes to RGB
-
-    # Define the prompt for OCR
-    prompt = '<OCR_WITH_REGION>'
-    inputs = processor(text=prompt, images=image, return_tensors="pt")
-
-    # Move tensors to the correct device and dtype
-    inputs = {
-        k: v.to(device=device, dtype=torch.int64) if k == "input_ids" else v.to(device=device, dtype=torch.float32)
-        if torch.is_tensor(v) else v
-        for k, v in inputs.items()
-    }
-
-    # Generate the output using the model
-    generated_ids = model.generate(
-        input_ids=inputs["input_ids"],
-        pixel_values=inputs["pixel_values"],
-        max_new_tokens=4096,
-        num_beams=3
-    )
-
-    # Decode and return the generated text and bounds
-    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
-    parsed_answer = processor.post_process_generation(generated_text, task=prompt, image_size=(image.width, image.height))
-    return parsed_answer['<OCR_WITH_REGION>']['labels']
-
-# Plugin Functions
-# context contains results from previous plugins in case data is needed
-def sentiment(plugin_data, plugin_options, context):
-    return {"emotion": "The user is very happy :)"}
-
-def latex(plugin_data, plugin_options, context):
-    return {"latex_output": "well formatted pdf"}
 
 # Maps plugin names to implementation functions
 PLUG_MAP = {
@@ -141,7 +92,7 @@ def process_svg_request():
             return jsonify({"error": f"Failed to do OCR: {e}"}), 500
     else:
         logging.exception("Failed to OCR")
-        return jsonify({"error": f"Failed to do OCR: {e}"}), 500
+        return jsonify({"error": f"Failed to do OCR"}), 500
 
     # Execute plugins in desired order
     plugin_results = {}
@@ -181,16 +132,26 @@ def process_svg_request():
         "ocr_results": ocr_results,
         "plugin_outputs": plugin_results
     }
+    print(final_response)
     return jsonify(final_response)
 
+# For downloading the latex pdf file
+@app.route('/download-pdf/<filename>', methods=['GET'])
+def download_pdf(filename):
+    print(f"Attempting to serve PDF: {filename}")
+
+    directory = os.path.join(current_app.root_path, 'tmp')
+
+    if not os.path.isfile(os.path.join(directory, filename)):
+        logging.exception(f"Requested file {filename} does not exist")
+        return jsonify({"error": f"Requested file {filename} does not exist"}), 404
+
+    return send_from_directory(
+        directory=os.path.join(current_app.root_path, 'tmp'),
+        path=filename,
+        as_attachment=True,
+        mimetype='application/pdf'
+    )
+
 if __name__ == '__main__':
-    # Load ocr model
-    device = "cpu"
-    torch_dtype = torch.float32  # Keep pixel values as float32
-
-    # Load the model and processor
-    model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-base", trust_remote_code=True).to(device)
-    processor = AutoProcessor.from_pretrained("microsoft/Florence-2-base", trust_remote_code=True)
-
-    # Run Flask dev server (for production, use a proper WSGI server like gunicorn/waitress)
     app.run(host="0.0.0.0", debug=True, port=5000)
