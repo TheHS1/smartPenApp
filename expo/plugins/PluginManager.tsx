@@ -10,7 +10,7 @@ import Pdf, { Source } from 'react-native-pdf';
 import RNFetchBlob from 'react-native-blob-util';
 import * as FileSystem from 'expo-file-system';
 import { Base64 } from "react-native-ble-plx";
-
+import { SkRect, Skia } from "@shopify/react-native-skia";
 
 export interface PlugInfo {
   title: string;
@@ -136,29 +136,80 @@ export default function DeviceConnectionModal({ visible, closeModal, annotations
     });
   };
 
+  const makeParagraph = (para: string, color: string, size: number) => {
+    const textStyle = {
+      color: Skia.Color(color),
+      fontSize: size,
+    };
+    return Skia.ParagraphBuilder.Make()
+      .pushStyle(textStyle)
+      .addText(para)
+      .build();
+  }
+
   const getData = async () => {
+    let maxBounds = { minx: 0, miny: 0, width: 0, height: 0 };
+    const padding = 30;
+
     const jsonAnnotations = annotations.map(anno => {
+      let bounds: SkRect;
       if ('text' in anno) {
         const textAnno = anno as textInfo;
+        const paragraph = makeParagraph(textAnno.text, textAnno.color, textAnno.strokeSize);
+        paragraph.layout(300);
+        bounds = { x: textAnno.x, y: textAnno.y, width: paragraph.getLongestLine(), height: paragraph.getHeight() }
+        if (bounds.x < maxBounds.minx) {
+          maxBounds.minx = bounds.x;
+        }
+        if (bounds.x + bounds.width > maxBounds.minx + maxBounds.width) {
+          maxBounds.width = bounds.x + bounds.width - maxBounds.minx;
+        }
+        if (bounds.y < maxBounds.miny) {
+          maxBounds.miny = bounds.y;
+        }
+        if (bounds.y + bounds.height > maxBounds.miny + maxBounds.height) {
+          maxBounds.height = bounds.y + bounds.height - maxBounds.minx;
+        }
         return {
           type: "text",
           data: textAnno.text,
           x: textAnno.x,
           y: textAnno.y,
           color: textAnno.color,
-          strokeSize: textAnno.strokeSize
+          strokeSize: textAnno.strokeSize,
+          bounds: bounds
         }
       } else {
         const pathAnno = anno as pathInfo;
+        bounds = Skia.Path.MakeFromSVGString(pathAnno.path)?.getBounds() ?? { x: 0, y: 0, height: 0, width: 0 };
+        if (bounds.x < maxBounds.minx) {
+          maxBounds.minx = bounds.x;
+        }
+        if (bounds.x + bounds.width > maxBounds.minx + maxBounds.width) {
+          maxBounds.width = bounds.x + bounds.width - maxBounds.minx;
+        }
+        if (bounds.y < maxBounds.miny) {
+          maxBounds.miny = bounds.y;
+        }
+        if (bounds.y + bounds.height > maxBounds.miny + maxBounds.height) {
+          maxBounds.height = bounds.y + bounds.height - maxBounds.minx;
+        }
         return {
           type: "path",
           data: pathAnno.path,
           erase: pathAnno.erase,
           color: pathAnno.color,
-          strokeSize: pathAnno.strokeSize
+          strokeSize: pathAnno.strokeSize,
+          bounds: bounds
         }
       }
     });
+
+    console.log(maxBounds)
+    maxBounds.minx -= padding;
+    maxBounds.miny -= padding;
+    maxBounds.width += padding;
+    maxBounds.height += padding;
 
     try {
       fetch("http://192.168.1.220:5000/process_svg", {
@@ -166,7 +217,7 @@ export default function DeviceConnectionModal({ visible, closeModal, annotations
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ "svgPaths": jsonAnnotations, "plugins": { "enabled": [{ "name": "latex" }, { "name": "sentiment" }] } })
+        body: JSON.stringify({ "viewbox": maxBounds, "svgPaths": jsonAnnotations, "plugins": { "enabled": [{ "name": "latex" }, { "name": "sentiment" }] } })
       })
         .then(response => {
           return response.json();
