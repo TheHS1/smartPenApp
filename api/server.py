@@ -6,8 +6,8 @@ from latex_plugin import latex
 from ocr_model import ocr
 from sentiment_plugin import sentiment
 
-SVG_WIDTH = 500  # width of svg 
-SVG_HEIGHT = 500 # height of svg
+SVG_WIDTH = 10000  # width of svg 
+SVG_HEIGHT = 10000 # height of svg
 
 # Some plugins must be executed before others so we define an order
 PLUGIN_ORDER = [
@@ -22,10 +22,14 @@ PLUG_MAP = {
 }
 
 # turn the path and text data into proper svg xml string
-def create_svg_string(paths, width=SVG_WIDTH, height=SVG_HEIGHT):
+def create_svg_string(paths, viewbox, width=SVG_WIDTH, height=SVG_HEIGHT):
+    print(viewbox)
+    if ('minx' not in viewbox or 'miny' not in viewbox or 'width' not in viewbox or 'height' not in viewbox):
+        logging.exception("Viewbox not properly defined")
+        return;
     svg_elements = []
     # Basic SVG structure
-    svg_header = f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
+    svg_header = f'<svg width="{width}" height="{height}" viewBox="{viewbox['minx']} {viewbox['miny']} {viewbox['width']} {viewbox['height']}" xmlns="http://www.w3.org/2000/svg">'
 
     # Add path elements based on type
     for path_info in paths:
@@ -54,16 +58,18 @@ def process_svg_request():
     data = request.get_json()
 
     # Basic Input Validation
-    if not data or 'svgPaths' not in data or 'plugins' not in data:
+    if not data or 'svgPaths' not in data or 'plugins' not in data or 'viewbox' not in data:
         return jsonify({"error": "Missing 'svgPaths' or 'plugins' in JSON input"}), 400
 
     svg_paths = data.get('svgPaths', [])
     plugin_config = data.get('plugins', {})
     enabled_plugins = plugin_config.get('enabled', [])
+    viewbox = data.get('viewbox', {})
 
     # generate the svg
     try:
-        svg_string = create_svg_string(svg_paths)
+        svg_string = create_svg_string(svg_paths, viewbox)
+        print(svg_string)
     except Exception as e:
         logging.exception("Error generating SVG string")
         return jsonify({"error": f"Failed to generate SVG: {e}"}), 500
@@ -75,8 +81,8 @@ def process_svg_request():
         # Render SVG to PNG using cairo
         png_data = cairosvg.svg2png(bytestring=svg_bytes)
 
-        #with open("output.png", "wb") as f:
-        #    f.write(png_data)
+        with open("output.png", "wb") as f:
+            f.write(png_data)
 
     except Exception as e:
         logging.exception("Error turning SVG to PNG")

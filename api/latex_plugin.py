@@ -3,10 +3,23 @@ import os
 import re
 from latexcompiler import LC
 
+replacements = { 
+                "?e" : '}',
+                "?u" : '\\underline{'
+}
+
 def latex(plugin_data, plugin_options, context):
     logging.info("Generating latex file")
     if "ocr_results" in context:
+        # Remove </s> from response
         content = " ".join(context["ocr_results"]).replace("</s>", "");
+
+        # Replace shortcut keybinds with appropriate latex symbols
+        for old, new in replacements.items():
+            content = content.replace(old, new)
+
+        # / creates problem for regular expression, double them up to escape
+        content = content.replace('\\', '\\\\')
     else:
         logging.exception("Error generating pdf using ocr results")
         return
@@ -22,7 +35,7 @@ def latex(plugin_data, plugin_options, context):
     # Define a regular expression pattern to match the content inside penContent
     pattern = r'\\begin{penContent}.*?\\end{penContent}'
 
-    # Replace the matched content with your new content (escaping LaTeX special chars if necessary)
+    # Replace the matched content with new content
     new_tex_content = re.sub(pattern, content, tex_content, flags=re.DOTALL)
 
     # Write the modified content back to the file
