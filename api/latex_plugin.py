@@ -2,24 +2,25 @@ import logging
 import os
 import re
 from latexcompiler import LC
-
-replacements = { 
-                "?e" : '}',
-                "?u" : '\\underline{'
-}
+import mistletoe
+from mistletoe.latex_renderer import LaTeXRenderer
 
 def latex(plugin_data, plugin_options, context):
     logging.info("Generating latex file")
+
     if "ocr_results" in context:
         # Remove </s> from response
         content = " ".join(context["ocr_results"]).replace("</s>", "");
+        rendered = mistletoe.markdown(content, LaTeXRenderer)
 
-        # Replace shortcut keybinds with appropriate latex symbols
-        for old, new in replacements.items():
-            content = content.replace(old, new)
+        # Remove the article start document and end document lines since unneeded
+        lines = rendered.splitlines()
+        print(lines)
+        if len(lines) >= 3:
+            rendered = "\n".join(lines[2:-1])
 
         # / creates problem for regular expression, double them up to escape
-        content = content.replace('\\', '\\\\')
+        rendered = rendered.replace('\\', '\\\\')
     else:
         logging.exception("Error generating pdf using ocr results")
         return
@@ -36,7 +37,7 @@ def latex(plugin_data, plugin_options, context):
     pattern = r'\\begin{penContent}.*?\\end{penContent}'
 
     # Replace the matched content with new content
-    new_tex_content = re.sub(pattern, content, tex_content, flags=re.DOTALL)
+    new_tex_content = re.sub(pattern, rendered, tex_content, flags=re.DOTALL)
 
     # Write the modified content back to the file
     output_file = os.path.join(directory, 'tmp', 'output.tex')
