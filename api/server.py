@@ -6,9 +6,6 @@ from latex_plugin import latex
 from ocr_model import ocr
 from sentiment_plugin import sentiment
 
-SVG_WIDTH = 10000  # width of svg 
-SVG_HEIGHT = 10000 # height of svg
-
 # Some plugins must be executed before others so we define an order
 PLUGIN_ORDER = [
     "sentiment",
@@ -23,13 +20,12 @@ PLUG_MAP = {
 
 # turn the path and text data into proper svg xml string
 def create_svg_string(paths, viewbox, width=SVG_WIDTH, height=SVG_HEIGHT):
-    print(viewbox)
     if ('minx' not in viewbox or 'miny' not in viewbox or 'width' not in viewbox or 'height' not in viewbox):
         logging.exception("Viewbox not properly defined")
         return;
     svg_elements = []
     # Basic SVG structure
-    svg_header = f'<svg width="{width}" height="{height}" viewBox="{viewbox['minx']} {viewbox['miny']} {viewbox['width']} {viewbox['height']}" xmlns="http://www.w3.org/2000/svg">'
+    svg_header = f'<svg width="{viewbox['width']}" height="{viewbox['height']}" viewBox="{viewbox['minx']} {viewbox['miny']} {viewbox['width']} {viewbox['height']}" xmlns="http://www.w3.org/2000/svg">'
 
     # Add path elements based on type
     for path_info in paths:
