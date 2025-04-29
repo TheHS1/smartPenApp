@@ -149,7 +149,7 @@ export default function DeviceConnectionModal({ visible, closeModal, annotations
 
   const getData = async () => {
     let maxBounds = { minx: 0, miny: 0, width: 0, height: 0 };
-    const padding = 30;
+    const padding = 500;
 
     const jsonAnnotations = annotations.map(anno => {
       let bounds: SkRect;
@@ -205,11 +205,12 @@ export default function DeviceConnectionModal({ visible, closeModal, annotations
       }
     });
 
-    console.log(maxBounds)
+    // Create a padding around the image (results in better ocr)
     maxBounds.minx -= padding;
     maxBounds.miny -= padding;
-    maxBounds.width += padding;
-    maxBounds.height += padding;
+    maxBounds.width += 2 * padding;
+    maxBounds.height += 2 * padding;
+    console.log(maxBounds)
 
     try {
       fetch("http://192.168.1.220:5000/process_svg", {
