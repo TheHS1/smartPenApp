@@ -10,11 +10,14 @@ def latex(plugin_data, plugin_options, context):
 
     if "ocr_results" in context:
         # Remove </s> from response
-        content = " ".join(context["ocr_results"]).replace("</s>", "");
+        content = "\n".join(context["ocr_results"]).replace("</s>", "");
         rendered = mistletoe.markdown(content, LaTeXRenderer)
 
         # Remove the article start document and end document lines since unneeded
         lines = rendered.splitlines()
+
+        # filter out usepackages (user should import necessary packages in their template)
+        lines = [line for line in lines if "usepackage" not in line];
         print(lines)
         if len(lines) >= 3:
             rendered = "\n".join(lines[2:-1])
