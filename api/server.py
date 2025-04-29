@@ -19,7 +19,7 @@ PLUG_MAP = {
 }
 
 # turn the path and text data into proper svg xml string
-def create_svg_string(paths, viewbox, width=SVG_WIDTH, height=SVG_HEIGHT):
+def create_svg_string(paths, viewbox):
     if ('minx' not in viewbox or 'miny' not in viewbox or 'width' not in viewbox or 'height' not in viewbox):
         logging.exception("Viewbox not properly defined")
         return;
@@ -160,4 +160,4 @@ def download_pdf(filename):
     )
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", debug=True, port=5000)
+    app.run(host="0.0.0.0", debug=False, port=5000)
