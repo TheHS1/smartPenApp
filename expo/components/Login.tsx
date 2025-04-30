@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import {
   Alert,
@@ -12,12 +12,26 @@ import {
   ImageBackground,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import React from "react";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
 
 export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [request, response, promptAsync] = Google.useAuthRequest({ 
+    clientId: '644162907815-3li2f65mn8qu3s64re57qolr7uah6vsa.apps.googleusercontent.com',
+  });
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { authentication } = response;
+      // You can now fetch user info using the accessToken if needed
+      router.navigate("/documents");
+    }
+  }, [response]);
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -87,6 +101,15 @@ export default function Login() {
             >
               <Text className="text-white text-center text-base font-semibold">
                 Login
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              disabled={!request}
+              onPress={() => promptAsync()}
+              className="bg-red-500 py-3 rounded-lg mt-4"
+            >   
+              <Text className="text-white text-center text-base font-semibold">
+                Sign in with Google
               </Text>
             </TouchableOpacity>
           </View>
