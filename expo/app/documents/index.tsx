@@ -59,8 +59,8 @@ export default function Index() {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={updateAndRedirect}>
-          <Ionicons name="add-outline" size={36} color="blue" />
+        <TouchableOpacity onPress={updateAndRedirect} className="p-1">
+          <Ionicons name="add-circle-outline" size={32} color="#007AFF" />
         </TouchableOpacity>
       ),
     });
@@ -74,34 +74,55 @@ export default function Index() {
   const Item = ({ title, fInfo }: itemProps) => (
     <TouchableOpacity
       onPress={() => openFile(title)}
-      className="h-40 w-full m-2 p-1 flex bg-gray-100"
+      className="w-full flex rounded-xl mx-2 border border-[40] p-2"
       style={{ flexBasis: '30%' }} // Ensures 3 items per row
+      activeOpacity={0.4}
     >
-      <View className="relative flex-1 w-full border bg-white">
-        <PagePreview paths={fInfo.pages[0]} />
+      <View className="h-32 relative flex-1 w-full overflow-hidden justify-center items-center">
+        {fInfo.pages[0] && fInfo.pages[0].length > 0 ? (
+          <PagePreview paths={fInfo.pages[0]} />
+        ) : (
+          <Ionicons name="document-text-outline" size={64} color="#cccccc" />
+        )
+        }
       </View >
-      <View className="flex flex-row">
-        <Text className="text-xs flex-initial font-bold">{title}</Text>
+      <View className="flex flex-row items-center justify-between mt-2">
+        <Text className="text-sm flex-initial font-semibold text-gray-800">{title.replace('.ispen', '')}</Text>
         <TouchableOpacity
           onPress={() => deleteFile(title)}
         >
-          <Ionicons name="trash-outline" size={28} color="red" />
+          <Ionicons name="trash-outline" size={24} color="red" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity >
   );
 
   return (
-    <View
-      className="h-full w-full">
-      <FlatList
-        data={Array.from(documents)}
-        renderItem={({ item }) => <Item title={item[0]} fInfo={item[1]} />}
-        keyExtractor={item => item[0]}
-        className="w-full h-full"
-        contentContainerStyle={{ alignItems: "center" }}
-        numColumns={3}
-      />
+    <View className="flex-1">
+      {documents.size === 0 ? (
+        <View className="flex-1 justify-center items-center p-5">
+          <Ionicons name="folder-open-outline" size={64} color="#cccccc" />
+          <Text className="text-2xl font-semibold text-gray-600 mt-2">No Documents Yet</Text>
+          <Text className="text-gray-400 mt-8 text-center">Tap the '+' button in the top right corner to create your first document.</Text>
+        </View>
+      ) : (
+        <View
+          className="h-full w-full">
+          <FlatList
+            data={Array.from(documents)}
+            renderItem={({ item }) => <Item title={item[0]} fInfo={item[1]} />}
+            keyExtractor={item => item[0]}
+            className="flex-1"
+            contentContainerStyle={{
+              alignItems: "center",
+              padding: 16, // Padding around the grid
+              gap: 24 // gaps between rows
+            }}
+            numColumns={3}
+          />
+        </View>
+      )
+      }
     </View>
   )
 }
