@@ -74,8 +74,7 @@ export default function Index() {
   const Item = ({ title, fInfo }: itemProps) => (
     <TouchableOpacity
       onPress={() => openFile(title)}
-      className="w-full flex rounded-xl mx-2 border border-[40] p-2"
-      style={{ flexBasis: '30%' }} // Ensures 3 items per row
+      className="w-full h-60 flex rounded-xl border border-[40]"
       activeOpacity={0.4}
     >
       <View className="h-32 relative flex-1 w-full overflow-hidden justify-center items-center">
@@ -86,12 +85,14 @@ export default function Index() {
         )
         }
       </View >
-      <View className="flex flex-row items-center justify-between mt-2">
-        <Text className="text-sm flex-initial font-semibold text-gray-800">{title.replace('.ispen', '')}</Text>
+      <View className="flex flex-row items-center justify-between mt-2 bg-gray-100 rounded-xl px-4 py-4">
+        <View className="flex-initial">
+          <Text className="text-lg font-bold ">{title}</Text>
+        </View>
         <TouchableOpacity
           onPress={() => deleteFile(title)}
         >
-          <Ionicons name="trash-outline" size={24} color="red" />
+          <Ionicons name="trash-outline" size={28} color="red" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity >
@@ -106,19 +107,18 @@ export default function Index() {
           <Text className="text-gray-400 mt-8 text-center">Tap the '+' button in the top right corner to create your first document.</Text>
         </View>
       ) : (
-        <View
-          className="h-full w-full">
+        <View className="h-full w-full">
           <FlatList
             data={Array.from(documents)}
             renderItem={({ item }) => <Item title={item[0]} fInfo={item[1]} />}
             keyExtractor={item => item[0]}
-            className="flex-1"
+            className="w-full flex-1"
             contentContainerStyle={{
-              alignItems: "center",
               padding: 16, // Padding around the grid
-              gap: 24 // gaps between rows
+              gap: 24, // gaps between rows
+              width: '100%'
             }}
-            numColumns={3}
+            numColumns={1}
           />
         </View>
       )
