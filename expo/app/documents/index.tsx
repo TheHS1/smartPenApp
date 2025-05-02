@@ -46,7 +46,7 @@ export default function Index() {
 
   const openFile = async (file: string) => {
     // pass file name to annotation component
-    router.push({ pathname: '/documents/(tabs)/', params: { fileName: file } })
+    router.push({ pathname: '/documents/[Main]', params: { fileName: file } })
   }
 
   const deleteFile = async (file: string) => {
@@ -59,9 +59,16 @@ export default function Index() {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={updateAndRedirect} className="p-1">
-          <Ionicons name="add-circle-outline" size={32} color="#007AFF" />
-        </TouchableOpacity>
+        <View className="flex flex-row w-32 justify-end items-center">
+          <TouchableOpacity onPress={updateAndRedirect} className="p-1">
+            <Ionicons name="add-circle-outline" size={28} color="#007AFF" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => {
+            router.push({ pathname: '/documents/Profile' })
+          }} className="ml-4 p-1">
+            <Ionicons name="person" size={28} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation]);

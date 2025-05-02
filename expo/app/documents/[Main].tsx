@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { TouchableOpacity, View, Text, Button } from "react-native";
 import { Device } from "react-native-ble-plx";
-import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Annotations from "@/components/Annotations";
 import DeviceModal from "@/components/DeviceConnectionModal";
@@ -13,11 +12,9 @@ import { getFiles } from "@/utils";
 import Constants from "expo-constants";
 import PluginManager from "@/plugins/PluginManager";
 import { useCanvasRef } from "@shopify/react-native-skia";
-import * as FileSystem from 'expo-file-system';
 
 export default function Main() {
   const { fileName } = useLocalSearchParams<{ fileName: string; }>();
-  const navigation = useNavigation();
 
   const [fInfo, setFileInfo] = useState<fileInfo>({ pages: [] });
   const [annotations, setAnnotations] = useState<annotation[]>([]);
@@ -28,22 +25,6 @@ export default function Main() {
   const [pageNum, setPageNum] = useState<number>(0);
 
   const [showPlugin, setShowPlugin] = useState<boolean>(false);
-
-  // set button action for menu button in header
-  useEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => setShowPageSelector(!showPageSelector)}>
-          <Ionicons name="menu" size={36} color="blue" />
-        </TouchableOpacity>
-      ),
-      headerRight: () => (
-        <TouchableOpacity onPress={() => setShowPlugin(true)}>
-          <Ionicons name="extension-puzzle-outline" size={36} color="blue" />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, showPageSelector]);
 
   // BLE does not work in expo go
   const expoGo = Constants.executionEnvironment === 'storeClient'
@@ -71,19 +52,18 @@ export default function Main() {
       .catch(console.error);
 
     const fetchDevice = async () => {
-      try {
-        const deviceId = await AsyncStorage.getItem('deviceId');
-        if (deviceId) {
-          connectToDevice(JSON.parse(deviceId));
-        }
-      } catch (err) {
-        console.warn(err)
+      const deviceId = await AsyncStorage.getItem('deviceId');
+      if (deviceId) {
+        connectToDevice(JSON.parse(deviceId));
       }
     }
 
     fetchDevice();
   }, [])
 
+  useEffect(() => {
+    console.log(connectedDevice?.name)
+  }, [connectedDevice])
   const [isDevModalVisible, setIsDevModalVisible] = useState<boolean>(false);
 
   const scanForDevices = async () => {
@@ -147,24 +127,14 @@ export default function Main() {
       .catch(console.error);
   }
 
-  const canvasSnap = async () => {
-    const image = await ref.current?.makeImageSnapshotAsync();
-    if (image) {
-      const bytes = image.encodeToBase64();
-      if (bytes) {
-        await FileSystem.writeAsStringAsync(FileSystem.documentDirectory + 'canvas.png', bytes, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        return true;
-      }
-      return false;
-    }
-    return false;
-  }
-
   return (
     <View
       className="h-full w-full">
+      <PluginManager
+        closeModal={() => setShowPlugin(false)}
+        visible={showPlugin}
+        annotations={annotations}
+      />
       {(expoGo || connectedDevice || bypass) ? (
         <View
           className="flex w-full h-full">
@@ -177,13 +147,8 @@ export default function Main() {
                 deletePage={deletePage}
               />
             )}
-            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} resetPenPos={resetPenPos} />
+            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} resetPenPos={resetPenPos} setShowPageSelector={setShowPageSelector} showPageSelector={showPageSelector} setShowPlugin={setShowPlugin} />
           </View>
-          <PluginManager
-            closeModal={() => setShowPlugin(false)}
-            visible={showPlugin}
-            annotations={annotations}
-          />
         </View>
       ) : (
         <View>

@@ -7,6 +7,9 @@ import AnnotationTools from "./AnnotationTools";
 import { Box, Canvas, Group, Paragraph, Path, SkPath, SkRect, Skia, SkiaDomView } from "@shopify/react-native-skia";
 import { annotation, pathInfo, textInfo } from "../types";
 import React from "react";
+import { useNavigation, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import TopBarTools from "./TopBarTools";
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn,
@@ -21,15 +24,18 @@ export enum tools {
 }
 
 interface annotationProps {
-  data: string;
   annotations: annotation[];
+  canvRef: React.RefObject<SkiaDomView>;
+  data: string;
+  showPageSelector: boolean;
   saveAnnotations: () => void;
   setAnnotations: (prevAnnotation: annotation[]) => void;
-  canvRef: React.RefObject<SkiaDomView>;
+  setShowPlugin: (state: boolean) => void;
   resetPenPos: () => Promise<void>;
+  setShowPageSelector: (state: boolean) => void;
 }
 
-export default function Annotations({ data, annotations, saveAnnotations, setAnnotations, canvRef, resetPenPos }: annotationProps) {
+export default function Annotations({ data, annotations, saveAnnotations, setAnnotations, setShowPlugin, canvRef, resetPenPos, showPageSelector, setShowPageSelector }: annotationProps) {
   // Save annotations to file when they're changed
   useEffect(() => {
     saveAnnotations();
@@ -471,6 +477,9 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     translateX.value = 0;
     translateY.value = 0;
     scale.value = 1;
+    savedScale.value = 1;
+    savedTranslateX.value = 0;
+    savedTranslateY.value = 0;
   }
 
   const transform = useDerivedValue(() => {
@@ -550,104 +559,122 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     )
   }
 
+  const navigation = useNavigation();
+
+  // set button action for menu button in header
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TopBarTools
+          showAnnotation={showAnnotationState}
+          clearPath={clearAnnotation}
+          undoDraw={undoAnnotation}
+          redoDraw={redoDraw}
+          toggleShowAnnotation={toggleShowAnnotation}
+          redoAvailable={redoHist.length > 0}
+          undoAvailable={hist.length > 0}
+          resetPenPos={resetPenPos}
+        />
+      ),
+    });
+  }, [navigation, showAnnotationState, redoHist.length, hist.length]);
   return (
-    <View className="flex-1 flex border-blue-500 border-4 w-full h-full">
-      <AnnotationTools
-        strokeSize={strokeSize}
-        selTool={selTool}
-        showAnnotation={showAnnotationState}
-        color={color}
-        toggleShowPicker={toggleShowPicker}
-        setStroke={setStroke}
-        changeTool={changeTool}
-        undoDraw={undoAnnotation}
-        redoDraw={redoDraw}
-        clearPath={clearAnnotation}
-        toggleShowAnnotation={toggleShowAnnotation}
-        redoAvailable={redoHist.length > 0}
-        undoAvailable={hist.length > 0}
-      />
-      <GestureHandlerRootView>
-        <GestureDetector gesture={selTool != tools.edit ? canvasGes : editGes}>
-          <Canvas
-            style={{ flex: 1 }}
-            className="absolute"
-            ref={canvRef}
-          >
-            <Group transform={transform}>
-              {/* Show saved page strokes */}
-              {annotations.map((annotation: annotation, index: number) => (
-                pathSelected != index && (
-                  <RenderAnnotations key={index} annotation={annotation} />
-                )))}
-              <RenderPreview />
-              {pathSelected >= 0 && selTool === tools.edit && (
-                <Group>
-                  {annotations[pathSelected] && 'text' in annotations[pathSelected] ? (
-                    <Paragraph
-                      paragraph={makeParagraph(mutatedText.value, selectedColor.value, mutatedStrokeSize.value)}
-                      x={mutatedx}
-                      y={mutatedy}
-                      width={300}
-                    />
-                  ) : (
-                    <Path
-                      path={mutatedCurDrawn}
-                      style="stroke"
-                      strokeWidth={mutatedStrokeSize}
-                      strokeCap="round"
-                      color={selectedColor}
-                    />
-                  )}
+    <SafeAreaView className="flex-1 w-full h-full">
+      <View className="flex-1 flex w-full h-full">
+        <GestureHandlerRootView>
+          <GestureDetector gesture={selTool != tools.edit ? canvasGes : editGes}>
+            <Canvas
+              style={{ flex: 1 }}
+              className="absolute"
+              ref={canvRef}
+            >
+              <Group transform={transform}>
+                {/* Show saved page strokes */}
+                {annotations.map((annotation: annotation, index: number) => (
+                  pathSelected != index && (
+                    <RenderAnnotations key={index} annotation={annotation} />
+                  )))}
+                <RenderPreview />
+                {pathSelected >= 0 && selTool === tools.edit && (
+                  <Group>
+                    {annotations[pathSelected] && 'text' in annotations[pathSelected] ? (
+                      <Paragraph
+                        paragraph={makeParagraph(mutatedText.value, selectedColor.value, mutatedStrokeSize.value)}
+                        x={mutatedx}
+                        y={mutatedy}
+                        width={300}
+                      />
+                    ) : (
+                      <Path
+                        path={mutatedCurDrawn}
+                        style="stroke"
+                        strokeWidth={mutatedStrokeSize}
+                        strokeCap="round"
+                        color={selectedColor}
+                      />
+                    )}
 
-                  <Box box={selected} style="stroke" color="blue" strokeWidth={5}></Box>
-                </Group>
-              )}
-              <Path /* Display Annotation Data streamed from pen */
-                path={Skia.Path.MakeFromSVGString(data.substr(0, data.lastIndexOf(" "))) as SkPath}
-                style="stroke"
-                strokeWidth={1}
-                strokeCap="round"
-                color="black"
-              />
-            </Group>
-          </Canvas>
-        </GestureDetector>
-      </GestureHandlerRootView>
-      <View className="flex flex-row w-full">
-        <View className="flex-1">
-          <Button title="Reset Canvas" onPress={resetTransform} />
-        </View>
-        <View className="flex-1">
-          <Button title="Reset Pen Position" onPress={resetPenPos} />
-        </View>
-      </View>
-      <Modal className="flex items-center w-full" visible={showPicker} animationType='slide' transparent={true}>
-        <SafeAreaView>
-          <View className="flex items-center">
-            <View className="bg-gray-50 w-2/3 p-3">
-              <ColorPicker value='red' onComplete={onSelectColor}>
-                <Preview />
-                <Panel1 />
-                <HueSlider />
-                <Swatches />
-              </ColorPicker>
-              <TouchableOpacity className="bg-black opacity-40 items-center p-2" onPress={confirmColor}>
-                <Text className="text-white">Select</Text>
-              </TouchableOpacity>
+                    <Box box={selected} style="stroke" color="blue" strokeWidth={5}></Box>
+                  </Group>
+                )}
+                <Path /* Display Annotation Data streamed from pen */
+                  path={Skia.Path.MakeFromSVGString(data.substr(0, data.lastIndexOf(" "))) as SkPath}
+                  style="stroke"
+                  strokeWidth={1}
+                  strokeCap="round"
+                  color="black"
+                />
+              </Group>
+            </Canvas>
+          </GestureDetector>
+        </GestureHandlerRootView>
+        <AnnotationTools
+          strokeSize={strokeSize}
+          selTool={selTool}
+          color={color}
+          toggleShowPicker={toggleShowPicker}
+          setStroke={setStroke}
+          changeTool={changeTool}
+        />
+        <Modal className="flex items-center w-full" visible={showPicker} animationType='slide' transparent={true}>
+          <SafeAreaView>
+            <View className="flex items-center">
+              <View className="bg-gray-50 w-2/3 p-3">
+                <ColorPicker value='red' onComplete={onSelectColor}>
+                  <Preview />
+                  <Panel1 />
+                  <HueSlider />
+                  <Swatches />
+                </ColorPicker>
+                <TouchableOpacity className="bg-black opacity-40 items-center p-2" onPress={confirmColor}>
+                  <Text className="text-white">Select</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </SafeAreaView>
-      </Modal >
+          </SafeAreaView>
+        </Modal >
 
-      {/* Invisible text box to take text input */}
-      <TextInput
-        ref={inputRef}
-        onChangeText={setText}
-        onBlur={saveAnnotation}
-        value={text}
-        className="h-0 w-0"
-      />
-    </View >
+        {/* Invisible text box to take text input */}
+        <TextInput
+          ref={inputRef}
+          onChangeText={setText}
+          onBlur={saveAnnotation}
+          value={text}
+          className="h-0 w-0"
+        />
+        <View className="absolute m-2 border rounded-lg">
+          <TouchableOpacity className="p-2" onPress={() => setShowPageSelector(!showPageSelector)}>
+            <Ionicons name="menu" size={32} color="blue" />
+          </TouchableOpacity>
+          {<TouchableOpacity className="p-2" onPress={resetTransform}>
+            <Ionicons name="contract-outline" size={32} color="blue" />
+          </TouchableOpacity>
+          }
+          <TouchableOpacity className="p-2 rounded-lg" onPress={() => { setShowPlugin(true) }}>
+            <Ionicons name="extension-puzzle-outline" size={32} color="orange" />
+          </TouchableOpacity>
+        </View>
+      </View >
+    </SafeAreaView>
   )
 }
