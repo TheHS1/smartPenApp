@@ -61,9 +61,6 @@ export default function Main() {
     fetchDevice();
   }, [])
 
-  useEffect(() => {
-    console.log(connectedDevice?.name)
-  }, [connectedDevice])
   const [isDevModalVisible, setIsDevModalVisible] = useState<boolean>(false);
 
   const scanForDevices = async () => {
