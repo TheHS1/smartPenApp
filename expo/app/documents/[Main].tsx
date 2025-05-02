@@ -142,6 +142,7 @@ export default function Main() {
                 addPage={addPage}
                 changePage={changePage}
                 deletePage={deletePage}
+                deviceConnected={connectedDevice != null}
               />
             )}
             <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} resetPenPos={resetPenPos} setShowPageSelector={setShowPageSelector} showPageSelector={showPageSelector} setShowPlugin={setShowPlugin} />
