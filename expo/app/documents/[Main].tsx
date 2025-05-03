@@ -12,6 +12,7 @@ import { getFiles } from "@/utils";
 import Constants from "expo-constants";
 import PluginManager from "@/plugins/PluginManager";
 import { useCanvasRef } from "@shopify/react-native-skia";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Main() {
   const { fileName } = useLocalSearchParams<{ fileName: string; }>();
@@ -149,16 +150,17 @@ export default function Main() {
           </View>
         </View>
       ) : (
-        <View>
-          <Text className="text-center text-lg">Please connect your smart pen device</Text>
-          <TouchableOpacity
-            onPress={openDevModal}
-          >
-            <Text className="text-center bg-blue-500 p-5 m-10 text-white">
+        <View className="flex-1 justify-center items-center p-5">
+          <Ionicons name="bluetooth-outline" size={64} color="#cccccc" />
+          <Text className="text-2xl font-semibold text-gray-600 mt-2">No Intellisync Pen Connected</Text>
+          <Text className="text-gray-400 mt-8 text-center">
+            Tap the connect button to search for smart pens or <Button title="Skip for now" onPress={() => setBypass(true)} />
+          </Text>
+          <TouchableOpacity onPress={openDevModal}>
+            <Text className="text-center bg-blue-500 text-lg p-4 m-10 text-white">
               Connect
             </Text>
           </TouchableOpacity>
-          <Button onPress={() => setBypass(true)} title="Skip" />
           <DeviceModal
             closeModal={hideDevModal}
             visible={isDevModalVisible}
