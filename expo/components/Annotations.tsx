@@ -662,7 +662,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
           value={text}
           className="h-0 w-0"
         />
-        <View className="absolute m-2 border rounded-lg">
+        <View className="absolute m-2 border rounded-lg bg-white">
           <TouchableOpacity className="p-2" onPress={() => setShowPageSelector(!showPageSelector)}>
             <Ionicons name="menu" size={32} color="blue" />
           </TouchableOpacity>
