@@ -44,6 +44,14 @@ export default function StackLayout() {
         }}
       />
       <Stack.Screen
+        name="documents/PluginSettings"
+        options={{
+          headerTitle: 'Plugin Settings',
+          headerShown: true,
+          title: "Profile",
+        }}
+      />
+      <Stack.Screen
         name="documents/[Main]"
         options={{
           headerTitle: '',
