@@ -67,8 +67,8 @@ def process_ocr_request():
         # Render SVG to PNG using cairo
         png_data = cairosvg.svg2png(bytestring=svg_bytes)
 
-        with open("output.png", "wb") as f:
-            f.write(png_data)
+        # with open("output.png", "wb") as f:
+        #     f.write(png_data)
 
     except Exception as e:
         logging.exception("Error turning SVG to PNG")
