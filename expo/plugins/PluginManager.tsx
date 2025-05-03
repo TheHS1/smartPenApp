@@ -1,13 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { ComponentType, useEffect } from "react";
 import { FC, useCallback, useState } from "react";
-import { Dimensions, FlatList, ListRenderItemInfo, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, ListRenderItemInfo, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import plugArray from "@/plugins/index";
 import { annotation, pathInfo, textInfo } from "@/types";
-import Pdf, { Source } from 'react-native-pdf';
-import * as FileSystem from 'expo-file-system';
-import { Base64 } from "react-native-ble-plx";
 import { SkRect, Skia } from "@shopify/react-native-skia";
 
 export interface PlugInfo {
