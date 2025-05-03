@@ -6,18 +6,6 @@ from latex_plugin import latex
 from ocr_model import ocr
 from sentiment_plugin import sentiment
 
-# Some plugins must be executed before others so we define an order
-PLUGIN_ORDER = [
-    "sentiment",
-    "latex",
-]
-
-# Maps plugin names to implementation functions
-PLUG_MAP = {
-    "sentiment": sentiment,
-    "latex": latex,
-}
-
 # turn the path and text data into proper svg xml string
 def create_svg_string(paths, viewbox):
     if ('minx' not in viewbox or 'miny' not in viewbox or 'width' not in viewbox or 'height' not in viewbox):
@@ -52,19 +40,17 @@ logging.basicConfig(level=logging.INFO) # Set logging level
 
 # endpoint to process the svg and plugins
 @app.route('/process_svg', methods=['POST'])
-def process_svg_request():
+def process_ocr_request():
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
 
     data = request.get_json()
 
     # Basic Input Validation
-    if not data or 'svgPaths' not in data or 'plugins' not in data or 'viewbox' not in data:
-        return jsonify({"error": "Missing 'svgPaths' or 'plugins' in JSON input"}), 400
+    if not data or 'svgPaths' not in data or 'viewbox' not in data:
+        return jsonify({"error": "Missing 'svgPaths' or 'viewbox' or 'ocrData' in JSON input"}), 400
 
     svg_paths = data.get('svgPaths', [])
-    plugin_config = data.get('plugins', {})
-    enabled_plugins = plugin_config.get('enabled', [])
     viewbox = data.get('viewbox', {})
 
     # generate the svg
@@ -100,64 +86,42 @@ def process_svg_request():
         logging.exception("Failed to OCR")
         return jsonify({"error": f"Failed to do OCR"}), 500
 
-    # Execute plugins in desired order
-    plugin_results = {}
-
-    # This structure holds data needed by plugins
-    sharedData = {
-        "svg_string": svg_string,
-        "png_data": png_data, # Pass image
-        "ocr_results": ocr_results, # Pass OCR results
-    }
-
-    enabled_plugins_map = {p['name']: p for p in enabled_plugins}
-
-    # Iterate through the predefined order
-    for plugin_name in PLUGIN_ORDER:
-        if plugin_name in enabled_plugins_map:
-            if plugin_name in PLUG_MAP:
-                plugin_info = enabled_plugins_map[plugin_name]
-                plugin_func = PLUG_MAP[plugin_name]
-                try:
-                    # Call the plugin function
-                    result = plugin_func(
-                        plugin_data=plugin_info.get('data', {}),
-                        plugin_options=plugin_info.get('options', {}),
-                        context=sharedData
-                    )
-                    plugin_results[plugin_name] = result
-                except Exception as e:
-                    logging.exception(f"Error executing plugin: {plugin_name}")
-                    plugin_results[plugin_name] = {"error": f"Plugin execution failed: {e}"}
-            else:
-                print(f"Plugin '{plugin_name}' is in json but not in plugin map")
-                plugin_results[plugin_name] = {"status": "Not implemented"}
-
-    # Return plugin and ocr results
+    # Return ocr results
     final_response = {
         "ocr_results": ocr_results,
-        "plugin_outputs": plugin_results
     }
     print(final_response)
     return jsonify(final_response)
 
-# For downloading the latex pdf file
-@app.route('/download-pdf/<filename>', methods=['GET'])
-def download_pdf(filename):
-    print(f"Attempting to serve PDF: {filename}")
+@app.route('/latex_plugin', methods=['POST'])
+def get_latex():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
 
-    directory = os.path.join(current_app.root_path, 'tmp')
+    data = request.get_json()
+    # Basic Input Validation
+    if 'options' not in data or 'ocrData' not in data:
+        return jsonify({"error": "Missing 'options' or 'ocrData' in JSON input"}), 400
 
-    if not os.path.isfile(os.path.join(directory, filename)):
-        logging.exception(f"Requested file {filename} does not exist")
-        return jsonify({"error": f"Requested file {filename} does not exist"}), 404
+    options = data.get('options', [])
+    ocrData = data.get('ocrData', '')
+
+    result = latex(ocrData, options)
+
+    # Return pdf back to user
+    directory = os.path.join(current_app.root_path, result)
+
+    if not os.path.isfile(directory):
+        logging.exception(f"Requested file {result} does not exist")
+        return jsonify({"error": f"Error returning file back"}), 404
 
     return send_from_directory(
-        directory=os.path.join(current_app.root_path, 'tmp'),
-        path=filename,
+        directory=os.path.join(current_app.root_path),
+        path=result,
         as_attachment=True,
         mimetype='application/pdf'
     )
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=False, port=5000)
