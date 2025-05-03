@@ -9,14 +9,18 @@ export default function LatexPlugin(): PlugInfo {
   // TODO: This value needs to be loaded from state instead
   const enabled = true
 
-  const Func = () => {
+  interface FuncProps {
+    data: {};
+  }
+
+  const Func = ({ data }: FuncProps) => {
     const [isLoading, setLoading] = useState(true);
-    const [data, setData] = useState<string>("");
+    const [response, setResponse] = useState<string>("");
 
     const getData = async () => {
       try {
         const response = await fetch('https://wttr.in?format=3');
-        setData(await response.text());
+        setResponse(await response.text());
       } catch (error) {
         console.error(error);
       } finally {
@@ -26,14 +30,14 @@ export default function LatexPlugin(): PlugInfo {
 
     useEffect(() => {
       getData();
-    }, []);
+    }, [data]);
 
     return (
       <View className="flex-1">
         {isLoading ? (
           <Text>Fetching your data...</Text>
         ) : (
-          <Text>{data}</Text>
+          <Text>{response}</Text>
         )}
       </View>
     );

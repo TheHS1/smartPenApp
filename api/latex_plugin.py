@@ -5,28 +5,22 @@ from latexcompiler import LC
 import mistletoe
 from mistletoe.latex_renderer import LaTeXRenderer
 
-def latex(plugin_data, plugin_options, context):
+def latex(data, plugin_options):
     logging.info("Generating latex file")
 
-    if "ocr_results" in context:
-        # Remove </s> from response
-        content = "\n".join(context["ocr_results"]).replace("</s>", "");
-        rendered = mistletoe.markdown(content, LaTeXRenderer)
+    # Remove </s> from response
+    rendered = mistletoe.markdown(data.replace("</s>", ""), LaTeXRenderer)
 
-        # Remove the article start document and end document lines since unneeded
-        lines = rendered.splitlines()
+    # Remove the article start document and end document lines since unneeded
+    lines = rendered.splitlines()
 
-        # filter out usepackages (user should import necessary packages in their template)
-        lines = [line for line in lines if "usepackage" not in line];
-        print(lines)
-        if len(lines) >= 3:
-            rendered = "\n".join(lines[2:-1])
+    # filter out usepackages (user should import necessary packages in their template)
+    lines = [line for line in lines if "usepackage" not in line];
+    if len(lines) >= 3:
+        rendered = "\n".join(lines[2:-1])
 
-        # / creates problem for regular expression, double them up to escape
-        rendered = rendered.replace('\\', '\\\\')
-    else:
-        logging.exception("Error generating pdf using ocr results")
-        return
+    # / creates problem for regular expression, double them up to escape
+    rendered = rendered.replace('\\', '\\\\')
 
     # Path to your LaTeX file
     directory = os.path.dirname(os.path.abspath(__file__))
@@ -47,6 +41,9 @@ def latex(plugin_data, plugin_options, context):
     with open(output_file, 'w') as f:
         f.write(new_tex_content)
 
-    LC.compile_document(tex_engine = 'pdflatex', bib_engine = 'biber', no_bib=True, path=output_file, folder_name = '.aux_files')
+    try:
+        LC.compile_document(tex_engine = 'pdflatex', bib_engine = 'biber', no_bib=True, path=output_file, folder_name = '.aux_files')
+    except:
+        print("bad latex data")
 
-    return {"pdf_path": 'tmp/output.pdf'}
+    return 'tmp/output.pdf'

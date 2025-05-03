@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { TouchableOpacity, View, Text, Button } from "react-native";
 import { Device } from "react-native-ble-plx";
-import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Annotations from "@/components/Annotations";
 import DeviceModal from "@/components/DeviceConnectionModal";
@@ -13,11 +12,10 @@ import { getFiles } from "@/utils";
 import Constants from "expo-constants";
 import PluginManager from "@/plugins/PluginManager";
 import { useCanvasRef } from "@shopify/react-native-skia";
-import * as FileSystem from 'expo-file-system';
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Main() {
   const { fileName } = useLocalSearchParams<{ fileName: string; }>();
-  const navigation = useNavigation();
 
   const [fInfo, setFileInfo] = useState<fileInfo>({ pages: [] });
   const [annotations, setAnnotations] = useState<annotation[]>([]);
@@ -28,22 +26,6 @@ export default function Main() {
   const [pageNum, setPageNum] = useState<number>(0);
 
   const [showPlugin, setShowPlugin] = useState<boolean>(false);
-
-  // set button action for menu button in header
-  useEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => setShowPageSelector(!showPageSelector)}>
-          <Ionicons name="menu" size={36} color="blue" />
-        </TouchableOpacity>
-      ),
-      headerRight: () => (
-        <TouchableOpacity onPress={() => setShowPlugin(true)}>
-          <Ionicons name="extension-puzzle-outline" size={36} color="blue" />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, showPageSelector]);
 
   // BLE does not work in expo go
   const expoGo = Constants.executionEnvironment === 'storeClient'
@@ -71,13 +53,9 @@ export default function Main() {
       .catch(console.error);
 
     const fetchDevice = async () => {
-      try {
-        const deviceId = await AsyncStorage.getItem('deviceId');
-        if (deviceId) {
-          connectToDevice(JSON.parse(deviceId));
-        }
-      } catch (err) {
-        console.warn(err)
+      const deviceId = await AsyncStorage.getItem('deviceId');
+      if (deviceId) {
+        connectToDevice(JSON.parse(deviceId));
       }
     }
 
@@ -147,24 +125,14 @@ export default function Main() {
       .catch(console.error);
   }
 
-  const canvasSnap = async () => {
-    const image = await ref.current?.makeImageSnapshotAsync();
-    if (image) {
-      const bytes = image.encodeToBase64();
-      if (bytes) {
-        await FileSystem.writeAsStringAsync(FileSystem.documentDirectory + 'canvas.png', bytes, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        return true;
-      }
-      return false;
-    }
-    return false;
-  }
-
   return (
     <View
       className="h-full w-full">
+      <PluginManager
+        closeModal={() => setShowPlugin(false)}
+        visible={showPlugin}
+        annotations={annotations}
+      />
       {(expoGo || connectedDevice || bypass) ? (
         <View
           className="flex w-full h-full">
@@ -175,27 +143,24 @@ export default function Main() {
                 addPage={addPage}
                 changePage={changePage}
                 deletePage={deletePage}
+                deviceConnected={connectedDevice != null}
               />
             )}
-            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} resetPenPos={resetPenPos} />
+            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} resetPenPos={resetPenPos} setShowPageSelector={setShowPageSelector} showPageSelector={showPageSelector} setShowPlugin={setShowPlugin} />
           </View>
-          <PluginManager
-            closeModal={() => setShowPlugin(false)}
-            visible={showPlugin}
-            annotations={annotations}
-          />
         </View>
       ) : (
-        <View>
-          <Text className="text-center text-lg">Please connect your smart pen device</Text>
-          <TouchableOpacity
-            onPress={openDevModal}
-          >
-            <Text className="text-center bg-blue-500 p-5 m-10 text-white">
+        <View className="flex-1 justify-center items-center p-5">
+          <Ionicons name="bluetooth-outline" size={64} color="#cccccc" />
+          <Text className="text-2xl font-semibold text-gray-600 mt-2">No Intellisync Pen Connected</Text>
+          <Text className="text-gray-400 mt-8 text-center">
+            Tap the connect button to search for smart pens or <Button title="Skip for now" onPress={() => setBypass(true)} />
+          </Text>
+          <TouchableOpacity onPress={openDevModal}>
+            <Text className="text-center bg-blue-500 text-lg p-4 m-10 text-white">
               Connect
             </Text>
           </TouchableOpacity>
-          <Button onPress={() => setBypass(true)} title="Skip" />
           <DeviceModal
             closeModal={hideDevModal}
             visible={isDevModalVisible}

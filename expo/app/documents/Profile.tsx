@@ -1,18 +1,10 @@
 import { View, Text, TouchableOpacity } from "react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from "expo-router";
-import { useEffect } from "react";
+import { useRouter } from "expo-router";
 
 export default function Profile() {
-  const navigation = useNavigation();
 
-  // Show bar in profile page
-  useEffect(() => {
-    navigation.setOptions({
-      headerShown: true
-    });
-  }, [navigation]);
+  const router = useRouter();
 
   return (
     <View
@@ -26,6 +18,13 @@ export default function Profile() {
       </View>
       <TouchableOpacity className="border border-gray-300 flex-initial px-4 py-8">
         <Text className="text-lg text-blue-500">Manage Connected Devices</Text>
+      </TouchableOpacity>
+      <TouchableOpacity className="border border-gray-300 flex-initial px-4 py-8"
+        onPress={() => {
+          router.push({ pathname: '/documents/PluginSettings' })
+        }}
+      >
+        <Text className="text-lg text-blue-500">Plugin Settings</Text>
       </TouchableOpacity>
       <TouchableOpacity className="border border-gray-300 flex-initial px-4 py-8">
         <Text className="text-lg text-blue-500">About</Text>

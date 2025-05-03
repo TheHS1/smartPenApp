@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { PermissionsAndroid, Platform } from "react-native";
-import { BleError, BleManager, Characteristic, Device } from "react-native-ble-plx"
+import { BleError, BleManager, Characteristic, Device, Subscription } from "react-native-ble-plx"
 
 import * as ExpoDevice from "expo-device"
 
@@ -28,6 +28,7 @@ const expoGo = Constants.executionEnvironment === 'storeClient'
 
 export default function useBLE(): BluetoothLowEnergyApi {
     let bleManager: BleManager;
+    let deviceSubscription: Subscription;
     if (!expoGo) {
         bleManager = useMemo(() => new BleManager(), []);
     }
@@ -121,6 +122,7 @@ export default function useBLE(): BluetoothLowEnergyApi {
             setConnectedDevice(deviceConnection);
             await deviceConnection.discoverAllServicesAndCharacteristics();
             bleManager.stopDeviceScan();
+            deviceSubscription = bleManager.onDeviceDisconnected(device.id, disconnectFromDevice);
             startStreamingData(deviceConnection);
         } catch (e) {
             console.log("ERROR IN CONNECTION", e);
@@ -134,6 +136,7 @@ export default function useBLE(): BluetoothLowEnergyApi {
     ) => {
         if (error) {
             console.log(error);
+            disconnectFromDevice();
             return
         } else if (!characeristic?.value) {
             console.log("No Data Received")
@@ -146,8 +149,12 @@ export default function useBLE(): BluetoothLowEnergyApi {
             if (rawData.charAt(0) == "M") {
                 return (oldData.substr(0, oldData.lastIndexOf(" ")) + rawData)
             } else if (oldData.length == 0) {
-                console.log("M" + rawData.substr(rawData.indexOf(" ") + 1));
-                return "M" + rawData.substr(rawData.indexOf(" ") + 1);
+                const crop = rawData.substr(rawData.indexOf(" ") + 1);
+                if (crop.charAt(0) == "M") {
+                    return crop;
+                } else {
+                    return "M" + rawData.substr(rawData.indexOf(" ") + 1);
+                }
             }
             return oldData + rawData;
         })
@@ -168,6 +175,7 @@ export default function useBLE(): BluetoothLowEnergyApi {
 
     const resetPenPos = async () => {
         if (connectedDevice) {
+            setData(data.substr(data.lastIndexOf(" ")));
             const response = await connectedDevice.writeCharacteristicWithResponseForService(DATA_UUID, DATA_CHARACTERISTIC, "");
         } else {
             console.log("No Device Connected")
@@ -175,12 +183,14 @@ export default function useBLE(): BluetoothLowEnergyApi {
     }
 
     const disconnectFromDevice = () => {
-        if (!bleManager)
+        setConnectedDevice(null);
+        if (!bleManager) {
             return
+        }
         if (connectedDevice) {
             bleManager.cancelDeviceConnection(connectedDevice.id)
-            setConnectedDevice(null);
             setData("");
+            deviceSubscription.remove();
         }
     }
 
