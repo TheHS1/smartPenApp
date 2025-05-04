@@ -122,6 +122,27 @@ def get_latex():
         mimetype='application/pdf'
     )
 
+@app.route('/sentiment_plugin', methods=['POST'])
+def get_sentiment():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
+    data = request.get_json()
+    # Basic Input Validation
+    if 'sentimentData' not in data:
+        return jsonify({"error": "Missing 'options' or 'sentimentData' in JSON input"}), 400
+
+    options = data.get('options', [])
+    sentimentData = data.get('sentimentData', '')
+
+    result = sentiment(sentimentData);
+
+    # Return ocr results
+    final_response = {
+        "sentiment_results": result,
+    }
+    return jsonify(final_response)
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=False, port=5000)
