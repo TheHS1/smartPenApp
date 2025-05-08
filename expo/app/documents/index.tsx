@@ -85,7 +85,7 @@ export default function Index() {
       activeOpacity={0.4}
     >
       <View className="h-32 relative flex-1 w-full overflow-hidden justify-center items-center">
-        {fInfo.pages[0] && fInfo.pages[0].length > 0 ? (
+        {fInfo.pages[0] && (fInfo.pages[0].annotations.length > 0 || fInfo.pages[0].penStrokes.length > 0) ? (
           <PagePreview paths={fInfo.pages[0]} />
         ) : (
           <Ionicons name="document-text-outline" size={64} color="#cccccc" />

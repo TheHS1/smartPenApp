@@ -4,7 +4,7 @@ import { FC, useCallback, useState } from "react";
 import { FlatList, ListRenderItemInfo, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import plugArray from "@/plugins/index";
-import { annotation, pathInfo, textInfo } from "@/types";
+import { annotation, page, pathInfo, textInfo } from "@/types";
 import { SkRect, Skia } from "@shopify/react-native-skia";
 
 export interface PlugInfo {
@@ -18,7 +18,7 @@ export interface PlugInfo {
 interface PlugProps {
   visible: boolean;
   closeModal: () => void;
-  annotations: annotation[];
+  annotations: page;
 }
 
 type devLIProps = {
@@ -100,7 +100,12 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
     let maxBounds = { minx: 0, miny: 0, width: 0, height: 0 };
     const padding = 500;
 
-    const jsonAnnotations = annotations.map(anno => {
+    const allAnnotations = [
+      ...annotations.annotations,
+      ...annotations.penStrokes
+    ]
+
+    const jsonAnnotations = allAnnotations.map(anno => {
       let bounds: SkRect;
 
       // calculuate bounds across all elements to send to region to ocr

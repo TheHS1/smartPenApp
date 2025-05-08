@@ -44,9 +44,9 @@ export default function SentimentPlugin(): PlugInfo {
           return response.json();
         })
         .then(respData => {
-          const positive = parseFloat(parseFloat(respData['sentiment_results'][0][0]['score']).toFixed(3)) * 100;
-          const neutral = parseFloat(parseFloat(respData['sentiment_results'][0][1]['score']).toFixed(3)) * 100;
-          const negative = parseFloat(parseFloat(respData['sentiment_results'][0][2]['score']).toFixed(3)) * 100;
+          const positive = Math.round(parseFloat(respData['sentiment_results'][0][0]['score']) * 100);
+          const neutral = Math.round(parseFloat(respData['sentiment_results'][0][1]['score']) * 100);
+          const negative = Math.round(parseFloat(respData['sentiment_results'][0][2]['score']) * 100);
           setPositivePercent(positive);
           setNeutralPercent(neutral);
           setNegativePercent(negative);
@@ -64,17 +64,17 @@ export default function SentimentPlugin(): PlugInfo {
             <View className="w-full flex" style={{ height: 100 }}>
               <View className="flex-1 flex-row mt-2">
                 <Ionicons name="happy-outline" size={28} color="#facc15" />
-                <View className="bg-red-200 ml-2" style={{ width: `${positivePercent}%` }}>
+                <View className="ml-2" style={{ width: `${positivePercent}%`, backgroundColor: '#fecaca' }}>
                 </View>
               </View>
               <View className="flex-1 flex-row mt-2">
                 <Ionicons name="invert-mode-outline" size={28} color="gray" />
-                <View className="bg-gray-200 ml-2" style={{ width: `${neutralPercent}%` }}>
+                <View className="ml-2" style={{ backgroundColor: "#e5e7eb", width: `${neutralPercent}%` }}>
                 </View>
               </View>
               <View className="flex-1 flex-row mt-2">
                 <Ionicons name="sad-outline" size={28} color="blue" />
-                <View className="bg-blue-200 ml-2" style={{ width: `${negativePercent}%` }} >
+                <View className="ml-2" style={{ backgroundColor: "#bfdbfe", width: `${negativePercent}%` }} >
                 </View>
               </View>
             </View>

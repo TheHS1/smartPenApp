@@ -5,7 +5,7 @@ import ColorPicker, { Panel1, Swatches, Preview, HueSlider, returnedResults } fr
 import { ReanimatedLogLevel, configureReanimatedLogger, runOnJS, useDerivedValue, useSharedValue } from "react-native-reanimated";
 import AnnotationTools from "./AnnotationTools";
 import { Box, Canvas, Group, Paragraph, Path, SkPath, SkRect, Skia, SkiaDomView } from "@shopify/react-native-skia";
-import { annotation, pathInfo, textInfo } from "../types";
+import { annotation, page, pathInfo, textInfo } from "../types";
 import React from "react";
 import { useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,18 +24,18 @@ export enum tools {
 }
 
 interface annotationProps {
-  annotations: annotation[];
+  annotations: page;
   canvRef: React.RefObject<SkiaDomView>;
-  data: string;
+  penData: pathInfo[];
   showPageSelector: boolean;
   saveAnnotations: () => void;
-  setAnnotations: (prevAnnotation: annotation[]) => void;
+  setAnnotations: (prevAnnotation: page) => void;
   setShowPlugin: (state: boolean) => void;
   resetPenPos: () => Promise<void>;
   setShowPageSelector: (state: boolean) => void;
 }
 
-export default function Annotations({ data, annotations, saveAnnotations, setAnnotations, setShowPlugin, canvRef, resetPenPos, showPageSelector, setShowPageSelector }: annotationProps) {
+export default function Annotations({ penData, annotations, saveAnnotations, setAnnotations, setShowPlugin, canvRef, resetPenPos, showPageSelector, setShowPageSelector }: annotationProps) {
   // Save annotations to file when they're changed
   useEffect(() => {
     saveAnnotations();
@@ -120,9 +120,9 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
     const tForm = { scale: 1, translateX: 0, translateY: 0 }
 
     if ((selTool === tools.erase || selTool === tools.draw) && annotationSave != "") {
-      setAnnotations([...annotations, { color: color, strokeSize: strokeSize, path: annotationSave, erase: (selTool === tools.erase), transform: tForm } as pathInfo]);
+      setAnnotations({ ...annotations, annotations: [...annotations.annotations, ({ color: color, strokeSize: strokeSize, path: annotationSave, erase: (selTool === tools.erase), transform: tForm } as pathInfo)] });
     } else if (text != "") {
-      setAnnotations([...annotations, { text: text, x: x, y: y, color: color, strokeSize: strokeSize * 10, transform: tForm } as textInfo]);
+      setAnnotations({ ...annotations, annotations: [...annotations.annotations, ({ text: text, x: x, y: y, color: color, strokeSize: strokeSize * 10, transform: tForm } as textInfo)] });
     }
     setHist((prevHist) => [...prevHist, { action: actions.addAnnotation }]);
     curDrawn.value = "";
@@ -131,18 +131,18 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const clearAnnotation = () => {
     if (selTool === tools.edit) {
-      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.length) {
+      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.annotations.length) {
         return;
       }
-      const oldAnno = [...annotations];
+      const oldAnno = [...annotations.annotations];
       oldAnno.splice(selectedAnno.value, 1);
-      setAnnotations(oldAnno)
+      setAnnotations({ ...annotations, annotations: oldAnno })
       selectedAnno.value = -1;
       setAnnoSelected(-1);
       selected.value = { x: 0, y: 0, width: 0, height: 0 };
     } else {
-      setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations }]);
-      setAnnotations([]);
+      setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations.annotations }]);
+      setAnnotations({ ...annotations, annotations: [] });
       setRedoHist([]);
       curDrawn.value = "";
     }
@@ -156,12 +156,12 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
     switch (last.action) {
       case actions.addAnnotation:
-        const curAnnotations = [...annotations];
+        const curAnnotations = [...annotations.annotations];
         const annotation = curAnnotations.pop();
         if (annotation === undefined)
           return;
 
-        setAnnotations(curAnnotations);
+        setAnnotations({ ...annotations, annotations: curAnnotations });
         setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.deleteAnnotation, annotations: [annotation] }]);
 
         break;
@@ -169,14 +169,14 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         if (!last.annotations)
           return;
         setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.clear }]);
-        setAnnotations(last.annotations.slice());
+        setAnnotations({ ...annotations, annotations: last.annotations.slice() });
         break;
       case actions.editAnnotation:
         if (!last.annotations || last.index === undefined)
           return;
 
         if (last.index === pathSelected) {
-          if ('text' in annotations[last.index]) {
+          if ('text' in annotations.annotations[last.index]) {
             const textAnno = last.annotations[0] as textInfo;
             const paragraph = makeSkiaParagraph(textAnno.text, textAnno.color, textAnno.strokeSize);
             paragraph.layout(300);
@@ -193,10 +193,10 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         }
 
         const ind = last.index;
-        setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.editAnnotation, annotations: [annotations[ind]], index: ind }]);
-        const oldAnno = [...annotations];
+        setRedoHist((prevRedoHist) => [...prevRedoHist, { action: actions.editAnnotation, annotations: [annotations.annotations[ind]], index: ind }]);
+        const oldAnno = [...annotations.annotations];
         oldAnno[ind] = last.annotations[0];
-        setAnnotations(oldAnno);
+        setAnnotations({ ...annotations, annotations: oldAnno });
     }
 
     setHist(curHist);
@@ -214,21 +214,21 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
           return;
 
         const addAnnotation = first.annotations[0];
-        setAnnotations([...annotations, addAnnotation]);
+        setAnnotations({ ...annotations, annotations: [...annotations.annotations, addAnnotation] });
         setHist((prevHist) => [...prevHist, { action: actions.addAnnotation }]);
         break;
       case actions.clear:
-        setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations.slice() }]);
-        setAnnotations([]);
+        setHist((prevHist) => [...prevHist, { action: actions.clear, annotations: annotations.annotations.slice() }]);
+        setAnnotations({ ...annotations, annotations: [] });
         break;
       case actions.editAnnotation:
         if (!first.annotations || !first.index)
           return;
         const ind = first.index;
-        setHist((prevRedoHist) => [...prevRedoHist, { action: actions.editAnnotation, annotations: [annotations[ind]], index: ind }]);
-        const oldAnno = [...annotations];
+        setHist((prevRedoHist) => [...prevRedoHist, { action: actions.editAnnotation, annotations: [annotations.annotations[ind]], index: ind }]);
+        const oldAnno = [...annotations.annotations];
         oldAnno[ind] = first.annotations[0];
-        setAnnotations(oldAnno);
+        setAnnotations({ ...annotations, annotations: oldAnno });
     }
 
     setRedoHist(curHist);
@@ -236,11 +236,11 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
 
   const confirmColor = () => {
     if (selTool === tools.edit) {
-      const oldAnno = [...annotations];
+      const oldAnno = [...annotations.annotations];
       const annotation = (oldAnno[selectedAnno.value] as pathInfo);
       oldAnno[selectedAnno.value] = { ...(annotation), color: selectedColor.value };
-      setHist((prevHist) => [...prevHist, { action: actions.editAnnotation, annotations: [annotations[selectedAnno.value]], index: selectedAnno.value }]);
-      setAnnotations(oldAnno);
+      setHist((prevHist) => [...prevHist, { action: actions.editAnnotation, annotations: [annotations.annotations[selectedAnno.value]], index: selectedAnno.value }]);
+      setAnnotations({ ...annotations, annotations: oldAnno });
     } else {
       setColor(selectedColor.value);
     }
@@ -336,7 +336,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   const canvasGes = Gesture.Race(drawGesture, movement, tap)
 
   const selectpath = Gesture.Tap().onEnd((evt) => {
-    const annos = [...annotations];
+    const annos = [...annotations.annotations];
     for (let i = annos.length - 1; i >= 0; i--) {
       let bounds: SkRect;
       if ('text' in annos[i]) {
@@ -376,19 +376,19 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
   // for editing paths
   const scalePath = Gesture.Pinch()
     .onUpdate((e) => {
-      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.length) {
+      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.annotations.length) {
         return;
       }
       let origBounds: SkRect;
-      if ('text' in annotations[selectedAnno.value]) {
-        const textAnno = (annotations[selectedAnno.value] as textInfo);
+      if ('text' in annotations.annotations[selectedAnno.value]) {
+        const textAnno = (annotations.annotations[selectedAnno.value] as textInfo);
         const paragraph = makeSkiaParagraph(textAnno.text, textAnno.color, textAnno.strokeSize);
         paragraph.layout(300);
         origBounds = { x: textAnno.x, y: textAnno.y, width: paragraph.getLongestLine(), height: paragraph.getHeight() }
       } else {
-        origBounds = Skia.Path.MakeFromSVGString((annotations[selectedAnno.value] as pathInfo).path)?.getBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
+        origBounds = Skia.Path.MakeFromSVGString((annotations.annotations[selectedAnno.value] as pathInfo).path)?.getBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
       }
-      if ('text' in annotations[selectedAnno.value]) {
+      if ('text' in annotations.annotations[selectedAnno.value]) {
         // Calculate the center of the original bounds
         const centerX = origBounds.x + origBounds.width / 2;
         const centerY = origBounds.y + origBounds.height / 2;
@@ -400,7 +400,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         mutatedy.value = centerY + ((origBounds.y - centerY) * scaleFactor);
 
         // Adjust stroke size for scaling
-        const textAnno = (annotations[selectedAnno.value] as textInfo);
+        const textAnno = (annotations.annotations[selectedAnno.value] as textInfo);
         const paragraph = makeSkiaParagraph(textAnno.text, textAnno.color, mutatedStrokeSize.value * scaleFactor);
         mutatedStrokeSize.value = mutatedStrokeSize.value * scaleFactor;
         paragraph.layout(300);
@@ -410,35 +410,35 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
         matrix.translate(origBounds.x + origBounds.width / 2, origBounds.y + origBounds.height / 2);
         matrix.scale(e.scale, e.scale);
         matrix.translate(-(origBounds.x + origBounds.width / 2), -(origBounds.y + origBounds.height / 2));
-        const newPath = Skia.Path.MakeFromSVGString((annotations[selectedAnno.value] as pathInfo).path)?.transform(matrix);
+        const newPath = Skia.Path.MakeFromSVGString((annotations.annotations[selectedAnno.value] as pathInfo).path)?.transform(matrix);
         if (newPath) {
           selected.value = newPath.getBounds();
           mutatedCurDrawn.value = newPath.toSVGString();
-          mutatedStrokeSize.value = annotations[selectedAnno.value].strokeSize * e.scale;
+          mutatedStrokeSize.value = annotations.annotations[selectedAnno.value].strokeSize * e.scale;
         }
       }
     })
     .onEnd(() => {
-      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.length) {
+      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.annotations.length) {
         return;
       }
-      runOnJS(setHist)([...hist, { action: actions.editAnnotation, annotations: [annotations[selectedAnno.value]], index: selectedAnno.value }]);
-      const oldAnno = [...annotations];
-      if ('text' in annotations[selectedAnno.value]) {
+      runOnJS(setHist)([...hist, { action: actions.editAnnotation, annotations: [annotations.annotations[selectedAnno.value]], index: selectedAnno.value }]);
+      const oldAnno = [...annotations.annotations];
+      if ('text' in annotations.annotations[selectedAnno.value]) {
         (oldAnno[selectedAnno.value] as textInfo) = { ...(oldAnno[selectedAnno.value] as textInfo), x: mutatedx.value, y: mutatedy.value, strokeSize: mutatedStrokeSize.value }
       } else {
         (oldAnno[selectedAnno.value] as pathInfo) = { ...(oldAnno[selectedAnno.value] as pathInfo), path: mutatedCurDrawn.value, strokeSize: mutatedStrokeSize.value }
       }
-      runOnJS(setAnnotations)(oldAnno);
+      runOnJS(setAnnotations)({ ...annotations, annotations: oldAnno });
     })
 
   const movePath = Gesture.Pan()
     .onUpdate(e => {
-      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.length) {
+      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.annotations.length) {
         return;
       }
-      if ('text' in annotations[selectedAnno.value]) {
-        const textAnno = (annotations[selectedAnno.value] as textInfo);
+      if ('text' in annotations.annotations[selectedAnno.value]) {
+        const textAnno = (annotations.annotations[selectedAnno.value] as textInfo);
         const newX = textAnno.x + (e.translationX / scale.value);
         const newY = textAnno.y + (e.translationY / scale.value);
         mutatedx.value = newX;
@@ -447,7 +447,7 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       } else {
         const matrix = Skia.Matrix();
         matrix.translate(e.translationX / scale.value, e.translationY / scale.value);
-        const newPath = Skia.Path.MakeFromSVGString((annotations[selectedAnno.value] as pathInfo).path)?.transform(matrix);
+        const newPath = Skia.Path.MakeFromSVGString((annotations.annotations[selectedAnno.value] as pathInfo).path)?.transform(matrix);
         if (newPath) {
           selected.value = newPath.getBounds();
           mutatedCurDrawn.value = newPath.toSVGString();
@@ -455,17 +455,17 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
       }
     })
     .onEnd(() => {
-      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.length) {
+      if (selectedAnno.value < 0 || selectedAnno.value >= annotations.annotations.length) {
         return;
       }
-      runOnJS(setHist)([...hist, { action: actions.editAnnotation, annotations: [annotations[selectedAnno.value]], index: selectedAnno.value }]);
-      const oldAnno = [...annotations];
+      runOnJS(setHist)([...hist, { action: actions.editAnnotation, annotations: [annotations.annotations[selectedAnno.value]], index: selectedAnno.value }]);
+      const oldAnno = [...annotations.annotations];
       if ('text' in oldAnno[selectedAnno.value]) {
         (oldAnno[selectedAnno.value] as textInfo) = { ...(oldAnno[selectedAnno.value] as textInfo), x: mutatedx.value, y: mutatedy.value }
       } else {
         (oldAnno[selectedAnno.value] as pathInfo) = { ...(oldAnno[selectedAnno.value] as pathInfo), path: mutatedCurDrawn.value }
       }
-      runOnJS(setAnnotations)(oldAnno);
+      runOnJS(setAnnotations)({ ...annotations, annotations: oldAnno });
 
     })
 
@@ -590,14 +590,17 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
             >
               <Group transform={transform}>
                 {/* Show saved page strokes */}
-                {annotations.map((annotation: annotation, index: number) => (
+                {annotations.annotations.map((annotation: annotation, index: number) => (
                   pathSelected != index && (
                     <RenderAnnotations key={index} annotation={annotation} />
                   )))}
+                {annotations.penStrokes.map((annotation: annotation, index: number) => (
+                  <RenderAnnotations key={index} annotation={annotation} />
+                ))}
                 <RenderPreview />
                 {pathSelected >= 0 && selTool === tools.edit && (
                   <Group>
-                    {annotations[pathSelected] && 'text' in annotations[pathSelected] ? (
+                    {annotations.annotations[pathSelected] && 'text' in annotations.annotations[pathSelected] ? (
                       <Paragraph
                         paragraph={makeParagraph(mutatedText.value, selectedColor.value, mutatedStrokeSize.value)}
                         x={mutatedx}
@@ -617,13 +620,9 @@ export default function Annotations({ data, annotations, saveAnnotations, setAnn
                     <Box box={selected} style="stroke" color="blue" strokeWidth={5}></Box>
                   </Group>
                 )}
-                <Path /* Display Annotation Data streamed from pen */
-                  path={Skia.Path.MakeFromSVGString(data.substr(0, data.lastIndexOf(" "))) as SkPath}
-                  style="stroke"
-                  strokeWidth={1}
-                  strokeCap="round"
-                  color="black"
-                />
+                {penData.map((stroke: pathInfo, index: number) => (
+                  <RenderAnnotations key={index} annotation={stroke} />
+                ))}
               </Group>
             </Canvas>
           </GestureDetector>

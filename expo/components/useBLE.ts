@@ -144,7 +144,6 @@ export default function useBLE(): BluetoothLowEnergyApi {
         }
 
         const rawData = base64.decode(characeristic.value)
-        console.log(rawData)
         setData((oldData) => {
             if (rawData.charAt(0) == "M") {
                 return (oldData.substr(0, oldData.lastIndexOf(" ")) + rawData)
@@ -202,7 +201,7 @@ export default function useBLE(): BluetoothLowEnergyApi {
         connectedDevice,
         data,
         disconnectFromDevice,
-        resetPenPos
+        resetPenPos,
     }
 }
 

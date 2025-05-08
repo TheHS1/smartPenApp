@@ -7,7 +7,7 @@ import Annotations from "@/components/Annotations";
 import DeviceModal from "@/components/DeviceConnectionModal";
 import useBLE from '@/components/useBLE'
 import PageSelector from "@/components/PageSelector";
-import { fileInfo, annotation, } from "@/types";
+import { fileInfo, annotation, pathInfo, page, } from "@/types";
 import { getFiles } from "@/utils";
 import Constants from "expo-constants";
 import PluginManager from "@/plugins/PluginManager";
@@ -18,7 +18,9 @@ export default function Main() {
   const { fileName } = useLocalSearchParams<{ fileName: string; }>();
 
   const [fInfo, setFileInfo] = useState<fileInfo>({ pages: [] });
-  const [annotations, setAnnotations] = useState<annotation[]>([]);
+  const [annotations, setAnnotations] = useState<page>({ annotations: [], penStrokes: [] });
+  const [penPaths, setPenPaths] = useState<pathInfo[]>([]);
+  const [prevPenPaths, setPrevPenPaths] = useState<pathInfo[]>([]);
   const ref = useCanvasRef();
 
   const [showPageSelector, setShowPageSelector] = useState<boolean>(false);
@@ -38,8 +40,28 @@ export default function Main() {
     connectedDevice,
     data,
     disconnectFromDevice,
-    resetPenPos
+    resetPenPos,
   } = useBLE();
+
+  useEffect(() => {
+    //Only process data if connected
+    if (connectedDevice) {
+      if (data) {
+        // Split the raw data string by "M"
+        const strokes = data
+          .substring(data.indexOf("M"))
+          .substring(0, data.lastIndexOf(" "))
+          .split('M') // Split by Move command
+          .filter(strokeData => strokeData.trim() !== '') // Filter out any empty strings resulting from the split
+          .map(strokeData => ({ path: 'M' + strokeData.trim(), erase: false, color: 'black', strokeSize: 3 })); // Add 'M' back and create annotation object
+        setPenPaths(strokes);
+        setAnnotations({ ...annotations, penStrokes: [...strokes, ...prevPenPaths] });
+        saveAnnotations();
+      }
+    } else {
+      setPenPaths([]);
+    }
+  }, [data])
 
 
   useEffect(() => {
@@ -47,7 +69,8 @@ export default function Main() {
       .then((files: Map<string, fileInfo>) => {
         if (files.has(fileName)) {
           setFileInfo(files.get(fileName) ?? { pages: [] })
-          setAnnotations(files.get(fileName)?.pages[0] ?? []);
+          setAnnotations(files.get(fileName)?.pages[0] ?? { annotations: [], penStrokes: [] });
+          setPrevPenPaths(files.get(fileName)?.pages[0]?.penStrokes ?? []);
         }
       })
       .catch(console.error);
@@ -63,6 +86,13 @@ export default function Main() {
   }, [])
 
   const [isDevModalVisible, setIsDevModalVisible] = useState<boolean>(false);
+
+  const clearPenData = async () => {
+    await resetPenPos();
+    setPenPaths([]);
+    setPrevPenPaths([]);
+    setAnnotations({ ...annotations, penStrokes: [] });
+  }
 
   const scanForDevices = async () => {
     const isPermissionsEnabled = await requestPermissions();
@@ -91,7 +121,7 @@ export default function Main() {
   }
 
   const addPage = async () => {
-    const newDoc = { ...fInfo, pages: [...fInfo.pages, []] };
+    const newDoc = { pages: [...fInfo.pages, { annotations: [], penStrokes: [] }] };
     setFileInfo(newDoc);
     saveDocument();
   }
@@ -102,7 +132,7 @@ export default function Main() {
   }
 
   const deletePage = async (ind: number) => {
-    const pages: annotation[][] = fInfo.pages;
+    const pages: page[] = fInfo.pages;
     pages.splice(ind, 1);
 
     setFileInfo({ pages: pages });
@@ -146,7 +176,7 @@ export default function Main() {
                 deviceConnected={connectedDevice != null}
               />
             )}
-            <Annotations annotations={annotations} data={data} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} resetPenPos={resetPenPos} setShowPageSelector={setShowPageSelector} showPageSelector={showPageSelector} setShowPlugin={setShowPlugin} />
+            <Annotations annotations={annotations} penData={penPaths} setAnnotations={setAnnotations} saveAnnotations={saveAnnotations} canvRef={ref} resetPenPos={clearPenData} setShowPageSelector={setShowPageSelector} showPageSelector={showPageSelector} setShowPlugin={setShowPlugin} />
           </View>
         </View>
       ) : (
