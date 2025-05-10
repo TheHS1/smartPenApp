@@ -100,13 +100,17 @@ def get_latex():
 
     data = request.get_json()
     # Basic Input Validation
-    if 'options' not in data or 'ocrData' not in data:
-        return jsonify({"error": "Missing 'options' or 'ocrData' in JSON input"}), 400
+    if 'options' not in data or 'ocrData' not in data or 'svg_paths' not in data:
+        return jsonify({"error": "Missing 'options' or 'ocrData' or 'svg_paths' in JSON input"}), 400
 
     options = data.get('options', [])
-    ocrData = data.get('ocrData', '')
+    ocrData = data.get('ocrData', {})
+    svg_paths = data.get('svg_paths', [])
+    
+    if len(ocrData) == 0 or len(svg_paths) == 0:
+        return jsonify({"error": "Missing attributes in 'ocrData' or 'svg_paths' empty"}), 400
 
-    result = latex(ocrData, options)
+    result = latex(ocrData, options, svg_paths=svg_paths)
 
     # Return pdf back to user
     directory = os.path.join(current_app.root_path, result)
