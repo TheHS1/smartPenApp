@@ -1,7 +1,7 @@
 import { Dimensions, Text, View } from "react-native"
 import { PlugInfo } from "@/plugins/PluginManager"
 import { useEffect, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
+import { Fontisto, Ionicons } from "@expo/vector-icons";
 
 export default function SentimentPlugin(): PlugInfo {
   const title = "Sentiment Analysis Plugin"
@@ -59,21 +59,21 @@ export default function SentimentPlugin(): PlugInfo {
       <View>
         {positivePercent > 0 || neutralPercent > 0 || negativePercent > 0 ? (
           isLoading ? (
-            <Text font-sm font-gray-300>Fetching your data...</Text>
+            <Text className="font-sm font-gray-300">Fetching your data...</Text>
           ) : (
             <View className="w-full flex" style={{ height: 100 }}>
               <View className="flex-1 flex-row mt-2">
-                <Ionicons name="happy-outline" size={28} color="#facc15" />
-                <View className="ml-2" style={{ width: `${positivePercent}%`, backgroundColor: '#fecaca' }}>
+                <Fontisto name="smiley" size={24} color="#facc15" />
+                <View className="ml-2" style={{ width: `${positivePercent}%`, backgroundColor: '#fde047' }}>
                 </View>
               </View>
               <View className="flex-1 flex-row mt-2">
-                <Ionicons name="invert-mode-outline" size={28} color="gray" />
+                <Fontisto name="neutral" size={24} color="gray" />
                 <View className="ml-2" style={{ backgroundColor: "#e5e7eb", width: `${neutralPercent}%` }}>
                 </View>
               </View>
               <View className="flex-1 flex-row mt-2">
-                <Ionicons name="sad-outline" size={28} color="blue" />
+                <Fontisto name="frowning" size={24} color="#93c5fd" />
                 <View className="ml-2" style={{ backgroundColor: "#bfdbfe", width: `${negativePercent}%` }} >
                 </View>
               </View>
