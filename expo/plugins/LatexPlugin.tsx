@@ -9,7 +9,7 @@ import * as FileSystem from 'expo-file-system';
 export default function LatexPlugin(): PlugInfo {
   const title = "Latex Plugin";
   const description = "This plugin converts the text that was written by hand into latex code by expanding snippets and then providing a PDF file to to the user. Please check the documentation for more information";
-  const dependencies = ["ocr"];
+  const dependencies = ["ocr", "svgData"];
 
   // TODO: This value needs to be loaded from state instead
   const enabled = true;
@@ -24,13 +24,15 @@ export default function LatexPlugin(): PlugInfo {
     const [pdfVersion, setPdfVersion] = useState<number>(0);
 
     useEffect(() => {
-      let latexData = ""
-      for (const dependency of dependencies) {
-        if (dependency in data) {
-          latexData += data[dependency];
-        }
+      let ocrData: {} = {}
+      let svg_paths: {} = {}
+      if ("svgData" in data) {
+        svg_paths = data["svgData"];
       }
-      if (latexData == "") {
+      if ("ocr" in data) {
+        ocrData = data["ocr"];
+      }
+      if (ocrData == "") {
         return;
       }
 
@@ -40,7 +42,7 @@ export default function LatexPlugin(): PlugInfo {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 'ocrData': latexData, 'options': [] })
+        body: JSON.stringify({ 'ocrData': ocrData, 'options': [], 'svg_paths': svg_paths })
       })
         .then(response => {
           return response.blob();
@@ -96,7 +98,7 @@ export default function LatexPlugin(): PlugInfo {
       <View>
         {pdfVersion > 0 ? (
           isLoading ? (
-            <Text font-sm font-gray-300>Fetching your data...</Text>
+            <Text className="font-sm font-gray-300">Fetching your data...</Text>
           ) : (
             <Pdf
               key={pdfVersion}

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { ComponentType, useEffect } from "react";
+import React, { ComponentType, useEffect, useMemo } from "react";
 import { FC, useCallback, useState } from "react";
 import { FlatList, ListRenderItemInfo, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,15 +29,6 @@ type devLIProps = {
 const plugins: PlugInfo[] = plugArray();
 
 const PlugLI: FC<devLIProps> = ({ item, data }: devLIProps) => {
-  const [neededData, setNeededData] = useState<{}>({});
-
-  useEffect(() => {
-    if ('ocr' in data && item.item.dependencies?.includes('ocr')) {
-      setNeededData({ ocr: data['ocr'] })
-    } else {
-      setNeededData({})
-    }
-  }, [data])
 
   return (
     <View
@@ -54,19 +45,8 @@ const PlugLI: FC<devLIProps> = ({ item, data }: devLIProps) => {
             >
               {item.item.title}
             </Text>
-            <TouchableOpacity
-              className="flex-initial"
-              onPress={() => {
-                setNeededData((oldData) => {
-                  var clone = Object.create(oldData);
-                  return clone;
-                })
-              }}
-            >
-              <Ionicons name="reload" size={26} color='orange' />
-            </TouchableOpacity>
           </View>
-          <item.item.Func data={neededData} />
+          <item.item.Func data={data} />
         </View>
       </ScrollView>
     </View>
@@ -75,37 +55,20 @@ const PlugLI: FC<devLIProps> = ({ item, data }: devLIProps) => {
 
 export default function PluginManager({ visible, closeModal, annotations }: PlugProps) {
   const [plugData, setPlugData] = useState<{}>({});
-  const [ocrData, setOcrData] = useState<string>("");
+  const [ocrData, setOcrData] = useState<{ labels: string[], quadBoxes: number[] }>({ labels: [], quadBoxes: [] });
   const [ocrEdited, setOcrEdited] = useState<boolean>(false);
   const insets = useSafeAreaInsets();
-  const makeParagraph = (para: string, color: string, size: number) => {
-    const textStyle = {
-      color: Skia.Color(color),
-      fontSize: size,
-    };
-    return Skia.ParagraphBuilder.Make()
-      .pushStyle(textStyle)
-      .addText(para)
-      .build();
-  }
+  const padding = 500;
 
-  const refreshPlugins = async () => {
-    if (!ocrEdited) {
-      await getData();
-    }
-    setPlugData({ ocr: ocrData })
-  }
-
-  const getData = async () => {
+  const jsonAnnotations = useMemo(() => {
     let maxBounds = { minx: 0, miny: 0, width: 0, height: 0 };
-    const padding = 500;
 
     const allAnnotations = [
       ...annotations.annotations,
       ...annotations.penStrokes
     ]
 
-    const jsonAnnotations = allAnnotations.map(anno => {
+    const jsonAnno = allAnnotations.map(anno => {
       let bounds: SkRect;
 
       // calculuate bounds across all elements to send to region to ocr
@@ -167,7 +130,28 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
     maxBounds.width += 2 * padding;
     maxBounds.height += 2 * padding;
     console.log(maxBounds)
+    return { "viewbox": maxBounds, "svgPaths": jsonAnno }
+  }, [annotations]);
 
+  const makeParagraph = (para: string, color: string, size: number) => {
+    const textStyle = {
+      color: Skia.Color(color),
+      fontSize: size,
+    };
+    return Skia.ParagraphBuilder.Make()
+      .pushStyle(textStyle)
+      .addText(para)
+      .build();
+  }
+
+  const refreshPlugins = async () => {
+    if (!ocrEdited) {
+      await getData();
+    }
+    setPlugData({ ocr: ocrData, svgData: jsonAnnotations })
+  }
+
+  const getData = async () => {
     // Make server request
     try {
       fetch("http://192.168.1.220:5000/process_svg", {
@@ -175,16 +159,17 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ "viewbox": maxBounds, "svgPaths": jsonAnnotations })
+        body: JSON.stringify(jsonAnnotations)
       })
         .then(response => {
           return response.json();
         })
         .then(data => {
+          console.log(data["ocr_results"]);
           return data["ocr_results"];
         })
         .then(ocrResult => {
-          setOcrData(ocrResult.join('\n'));
+          setOcrData(ocrResult);
         })
     } catch (error) {
       console.error(error);
@@ -253,10 +238,10 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
             borderRadius: 8
           }}
           onChangeText={(newData) => {
-            setOcrData(newData)
+            setOcrData({ ...ocrData, "labels": newData.split('\n') });
             setOcrEdited(true);
           }}
-          value={ocrData}
+          value={'labels' in ocrData ? ocrData["labels"].join('\n') : "Error retrieving OCR Data please try again"}
           placeholder="Press >> to run all or Sync to process"
           multiline={true}
           autoCorrect={false}
