@@ -132,11 +132,19 @@
 #include <sys/mman.h>
 #include <thread>
 #include <vector>
+#include <wiringPi.h>
+#include <wiringSerial.h>
+
+#include "FPSCounter.h"
 
 using namespace cv;
 using namespace std;
 
 #define minOpticPoints 2
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 //
 // Constants
@@ -185,6 +193,19 @@ const Range topRange = Range(0, DIM.width * 0.5);
 const Range rightRange = Range(0.5 * DIM.height, DIM.height);
 const Range bottomRange = Range(DIM.width * 0.5, DIM.width);
 FlowData flowData[3];
+
+// IMU vars
+int imu_fd;
+const unsigned char command_bytes[] = {0xAA, 0x01, 0x1A, 0x06};
+const unsigned char read_ndof[] = {0xAA, 0x01, 0x3D, 0x01};
+const size_t command_len = sizeof(command_bytes);
+int16_t initialYaw = 0.0;
+int16_t initialRoll = 0.0;
+int16_t initialPitch = 0.0;
+
+int16_t eulerX = 0;
+int16_t eulerY = 0;
+int16_t eulerZ = 0;
 
 // Create thread pool with 3 threads
 ctpl::thread_pool p(3);
@@ -377,10 +398,12 @@ string message = "";
 std::mutex messMutex; // protects message
 int first = 0;
 int prevState = 1;
+FPSCounter fpsCounter;
 
 static void requestComplete(libcamera::Request *request) {
   if (request->status() == libcamera::Request::RequestCancelled)
     return;
+  // auto start = chrono::high_resolution_clock::now();
 
   const libcamera::Request::BufferMap &buffers = request->buffers();
   for (auto bufferPair : buffers) {
@@ -394,6 +417,7 @@ static void requestComplete(libcamera::Request *request) {
         static_cast<uint8_t *>(mmap(NULL, buffer->planes()[0].length,
                                     PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
     Mat image(cfg.size.height, cfg.size.width, CV_8UC3, ptr, cfg.stride);
+
     if (first == 0) {
       colors.push_back(Scalar(0, 0, 255));
       colors.push_back(Scalar(0, 255, 0));
@@ -410,14 +434,47 @@ static void requestComplete(libcamera::Request *request) {
       for (int i = 0; i < 3; i++) {
         detector->detect(flowData[i].old_gray, keypoints);
         KeyPoint::convert(keypoints, flowData[i].p0);
-        // goodFeaturesToTrack(flowData[i].old_gray, flowData[i].p0,
-        // maxTomasiPoints,
-        //   0.3, 7, Mat(), 7, false, 0.04);
       }
 
       first = 1;
+
+      // ask for euler data
+      for (size_t i = 0; i < command_len; ++i) {
+        serialPutchar(imu_fd, command_bytes[i]);
+      }
+      int statusCode = serialGetchar(imu_fd);
+      if (statusCode == 0xEE) {
+        if (serialGetchar(imu_fd) == 0x07) {
+          fprintf(stderr, "Device overrun\n");
+        } else {
+          fprintf(stderr, "Failed to get data with status code %02X\n",
+                  statusCode);
+          continue;
+        }
+      } else {
+        int numBytes = serialGetchar(imu_fd);
+        if (numBytes != 0x06) {
+          fprintf(stderr,
+                  "Wrong number of bytes returned. Expected 6 got %i \n",
+                  numBytes);
+          continue;
+        }
+
+        uint8_t eulerBuffer[6];
+        for (int i = 0; i < 6; i++) {
+          eulerBuffer[i] = serialGetchar(imu_fd);
+          // fprintf(stdout, "Received Byte: %02X\n", eulerBuffer[i]);
+        }
+
+        eulerX = (eulerBuffer[0] | (eulerBuffer[1] << 8)) / 16;
+        eulerY = (eulerBuffer[2] | (eulerBuffer[3] << 8)) / 16;
+        eulerZ = (eulerBuffer[4] | (eulerBuffer[5] << 8)) / 16;
+      }
+
+      initialYaw = eulerX;
+      initialRoll = eulerY;
+      initialPitch = eulerZ;
     } else {
-      // auto start = chrono::high_resolution_clock::now();
       Mat frame_gray;
       cvtColor(image, frame_gray, COLOR_BGR2GRAY);
       frame_gray = undistort(frame_gray);
@@ -429,6 +486,50 @@ static void requestComplete(libcamera::Request *request) {
       results[1] = p.push(flow, &flowData[1]);
       results[2] = p.push(flow, &flowData[2]);
 
+      // ask for euler data while other threads are doing optical flow
+      for (size_t i = 0; i < command_len; ++i) {
+        serialPutchar(imu_fd, command_bytes[i]);
+      }
+      int statusCode = serialGetchar(imu_fd);
+      if (statusCode == 0xEE) {
+        if (serialGetchar(imu_fd) == 0x07) {
+          fprintf(stderr, "Device overrun\n");
+        } else {
+          fprintf(stderr, "Failed to get data with status code %02X\n",
+                  statusCode);
+          continue;
+        }
+      } else {
+        int numBytes = serialGetchar(imu_fd);
+        if (numBytes != 0x06) {
+          fprintf(stderr,
+                  "Wrong number of bytes returned. Expected 6 got %i \n",
+                  numBytes);
+          continue;
+        }
+
+        uint8_t eulerBuffer[6];
+        for (int i = 0; i < 6; i++) {
+          eulerBuffer[i] = serialGetchar(imu_fd);
+          // fprintf(stdout, "Received Byte: %02X\n", eulerBuffer[i]);
+        }
+
+        eulerX = (eulerBuffer[0] | (eulerBuffer[1] << 8)) / 16;
+        eulerY = (eulerBuffer[2] | (eulerBuffer[3] << 8)) / 16;
+        eulerZ = (eulerBuffer[4] | (eulerBuffer[5] << 8)) / 16;
+      }
+
+      double yaw_angle_radians = (eulerX - initialYaw) * M_PI / 180.0;
+      double roll_angle_radians = (eulerY - initialRoll) * M_PI / 180.0;
+      double pitch_angle_radians = (eulerZ - initialPitch) * M_PI / 180.0;
+
+      double cos_yaw = std::cos(yaw_angle_radians);
+      double sin_yaw = std::sin(yaw_angle_radians);
+      double cos_pitch = std::cos(pitch_angle_radians);
+      double sin_pitch = std::sin(pitch_angle_radians);
+      double cos_roll = std::cos(-roll_angle_radians);
+      double sin_roll = std::sin(-roll_angle_radians);
+
       results[0].get();
       results[1].get();
       results[2].get();
@@ -439,6 +540,45 @@ static void requestComplete(libcamera::Request *request) {
       }
       avg.x /= 3;
       avg.y /= 3;
+
+      // cout << "AVG X: " << avg.x << endl;
+      // cout << "AVG Y: " << avg.y << endl;
+      double originalAvgX = avg.x;
+      double originalAvgY = avg.y;
+      double originalAvgZ = 0;
+
+      double xRotated, yRotated, zRotated;
+
+      // Apply roll correction
+      /*
+         xRotated = originalAvgX;
+         yRotated = originalAvgY * cos_roll;
+         zRotated = originalAvgY * sin_roll;
+         originalAvgX = xRotated;
+         originalAvgY = yRotated;
+         originalAvgZ = zRotated;
+         */
+
+      // Apply pitch correction
+      /*
+         xRotated = originalAvgX * cos_pitch + originalAvgZ * sin_pitch;
+         yRotated = originalAvgY;
+         zRotated = -originalAvgX * sin_pitch + originalAvgZ * cos_pitch;
+         originalAvgX = xRotated;
+         originalAvgY = yRotated;
+         originalAvgZ = zRotated;
+         */
+
+      // Apply yaw correction
+      xRotated = originalAvgX * cos_yaw - originalAvgY * sin_yaw;
+      yRotated = originalAvgX * sin_yaw + originalAvgY * cos_yaw;
+
+      // Save to average variables
+      avg.x = xRotated;
+      avg.y = yRotated;
+
+      // cout << "ADJUSTED X: " << avg.x << endl;
+      // cout << "ADJUSTED Y: " << avg.y << endl;
 
       const lock_guard<mutex> lock(posMutex);
       Point2f newPos = pos - avg;
@@ -463,6 +603,7 @@ static void requestComplete(libcamera::Request *request) {
       // auto stop = chrono::high_resolution_clock::now();
       // auto duration = chrono::duration_cast<chrono::milliseconds>(stop -
       // start); cout << duration.count() << endl;
+      fpsCounter.update();
     }
   }
   /* Re-queue the Request to the camera. */
@@ -499,6 +640,39 @@ int main(int argc, char **ppArgv) {
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
   signal(SIGSEGV, signalHandler);
+
+  // Wiring PI for IMU setup
+
+  if ((imu_fd = serialOpen("/dev/serial0", 115200)) < 0) {
+    fprintf(stderr, "Unable to open serial device: %s\n", strerror(errno));
+    return 1;
+  }
+
+  if (wiringPiSetup() == -1) {
+    fprintf(stdout, "Unable to start wiringPi: %s\n", strerror(errno));
+    return 1;
+  }
+
+  // Make sure we're running in the correct reading mode for IMU
+  for (size_t i = 0; i < command_len; i++) {
+    serialPutchar(imu_fd, read_ndof[i]);
+  }
+  int statusCode = serialGetchar(imu_fd);
+  if (statusCode == 0xEE) {
+    int status = serialGetchar(imu_fd);
+    if (status == 0x01) {
+      fprintf(stderr, "Successfully set NDOF mode\n");
+      return -1;
+    } else {
+      fprintf(stderr, "Failed to set NDOF mode %02X\n", status);
+      return -1;
+    }
+  }
+  int numBytes = serialGetchar(imu_fd);
+  for (int i = 0; i < numBytes; i++) {
+    int received_byte_int = serialGetchar(imu_fd);
+    fprintf(stdout, "Reading mode: %02X\n", received_byte_int);
+  }
 
   // Initialize undistortion maps
   fisheye::initUndistortRectifyMap(K, D, Mat::eye(3, 3, CV_64F), K, DIM,
