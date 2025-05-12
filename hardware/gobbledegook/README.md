@@ -1,21 +1,3 @@
-# Seeking a new maintainer
-
-I'm a firm believer that a maintainer should be, at least in some part, a consumer of the thing they're maintaining. I built GGK for a personal project. That project's communication needs have grown considerably, beyond the point where Bluetooth LE is a viable option and I was forced to make the switch to an IP-based solution. As much as I've enjoyed building and using GGK, I no longer have a use-case for Bluetooh LE or a test-case for GGK.
-
-If you are a GGK user and would like to become an advocate for its future development, please contact me.
-
----
-
-# News
-
-### Jun 24, 2019 - New license
-
-This author has deciced that this software should be free. Furthermore, this author's choice should not limit the freedoms of other authors by restricting their choices. As a result, Gobbledegook is now licensed under the **New BSD License**.
-
-### Feb 1, 2019
-
-Gobbledegook's license changed from GPL to LGPL in hopes that it would be found useful to more developers.
-
 # What is Gobbledegook?
 
 _Gobbledegook_ is a C/C++ standalone Linux [Bluetooth LE](https://en.wikipedia.org/wiki/Bluetooth_Low_Energy) [GATT](https://www.bluetooth.com/specifications/gatt/generic-attributes-overview) server using [BlueZ](http://www.bluez.org/about/) over [D-Bus](https://www.freedesktop.org/wiki/Software/dbus/#index1h1) with [Bluetooth Management API](https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/mgmt-api.txt) support built in. That's a lot of words, so I shortened it to _Gobbledegook_. Then I shortened it again to _GGK_ because let's be honest, it's a pain to type.
