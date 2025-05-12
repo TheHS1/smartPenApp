@@ -1,6 +1,8 @@
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import React from 'react';
 import "@/globals.css"
+import { TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function StackLayout() {
   return (
@@ -13,21 +15,56 @@ export default function StackLayout() {
         name="index"
         options={{
           headerShown: false,
-          title: "Documents"
+          title: "Login"
         }}
       />
       <Stack.Screen
         name="documents/index"
         options={{
           headerShown: true,
-          title: "Documents"
+          title: "Documents",
+          headerTitle: "",
+          headerRight: () => (
+            <View>
+              <TouchableOpacity className='p-1'>
+                <Ionicons name="person" size={28} color="#007AFF" />
+              </TouchableOpacity>
+              <TouchableOpacity className='p-1'>
+                <Ionicons name="add-circle-outline" size={28} color="#007AFF" />
+              </TouchableOpacity>
+            </View>
+          ),
         }}
       />
       <Stack.Screen
-        name="documents/(tabs)"
+        name="documents/Profile"
         options={{
-          headerShown: false,
-          title: "Documents"
+          headerShown: true,
+          title: "Profile",
+        }}
+      />
+      <Stack.Screen
+        name="documents/PluginSettings"
+        options={{
+          headerTitle: 'Plugin Settings',
+          headerShown: true,
+          title: "Profile",
+        }}
+      />
+      <Stack.Screen
+        name="documents/[Main]"
+        options={{
+          headerTitle: '',
+          headerBackButtonDisplayMode: 'minimal',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => {
+                router.push({ pathname: '/documents/Profile' })
+              }}
+            >
+              <Ionicons name="person" size={28} color="#007AFF" />
+            </TouchableOpacity>
+          ),
         }}
       />
     </Stack>

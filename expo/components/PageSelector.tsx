@@ -4,16 +4,19 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import PagePreview from "./PagePreview";
 import Reanimated, { SharedValue, useAnimatedStyle } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { fileInfo, pathInfo } from "../types";
+import { annotation, fileInfo } from "../types";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface pageSelectorProps {
+  deviceConnected: boolean;
   fInfo: fileInfo;
   addPage: () => void;
   changePage: (page: number) => void;
   deletePage: (page: number) => void;
 }
 
-export default function PageSelector({ fInfo, addPage, changePage, deletePage }: pageSelectorProps) {
+export default function PageSelector({ deviceConnected, fInfo, addPage, changePage, deletePage }: pageSelectorProps) {
+  const insets = useSafeAreaInsets();
 
   let row: Array<any> = [];
   const closeRow = (index: number) => {
@@ -42,7 +45,7 @@ export default function PageSelector({ fInfo, addPage, changePage, deletePage }:
 
   interface itemProps {
     index: number;
-    page: pathInfo[];
+    page: annotation[];
   }
 
   const Item = ({ index, page }: itemProps) => (
@@ -69,8 +72,40 @@ export default function PageSelector({ fInfo, addPage, changePage, deletePage }:
   );
 
   return (
-    <View className="w-2/6 h-full flex-initial flex bg-gray-100">
-
+    <View
+      className="w-2/6 h-full flex-initial flex bg-gray-100"
+      style={{ paddingBottom: insets.bottom }}
+    >
+      {deviceConnected ? (
+        <View className="m-2 flex">
+          <View className="text-center flex flex-row w-full items-center ml-0.5">
+            <View
+              className="flex-initial"
+              style={{ width: 12, height: 12, borderRadius: 12, backgroundColor: 'green' }}
+            />
+            <Text className="w-full text-sm font-semibold flex-1 ml-2">Pen Connected</Text>
+          </View>
+          <View className="text-center flex flex-row w-full items-center">
+            <Ionicons name="checkmark-circle" size={16} color="red" />
+            <Text className="w-full text-sm font-semibold flex-1 ml-2">Synced</Text>
+          </View>
+        </View>
+      ) : (
+        <View className="m-2 flex">
+          <View className="text-center flex flex-row w-full items-center ml-0.5">
+            <View
+              className="flex-initial"
+              style={{ width: 12, height: 12, borderRadius: 12, backgroundColor: 'red' }}
+            />
+            <Text className="w-full text-sm font-semibold flex-1 ml-2">Not Connected</Text>
+          </View>
+          <View className="text-center flex flex-row w-full items-center">
+            <Ionicons name="checkmark-circle" size={16} color="blue" />
+            <Text className="w-full text-sm font-semibold flex-1 ml-2">Synced</Text>
+          </View>
+        </View>
+      )
+      }
       <GestureHandlerRootView>
         <FlatList
           data={fInfo.pages}

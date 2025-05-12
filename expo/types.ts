@@ -14,6 +14,11 @@ export interface pathInfo extends annotation {
     erase: boolean;
 }
 
+export interface page {
+    annotations: annotation[];
+    penStrokes: pathInfo[];
+}
+
 export interface fileInfo {
-    pages: annotation[][];
+    pages: page[];
 }

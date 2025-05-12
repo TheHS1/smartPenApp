@@ -1,5 +1,5 @@
 import { FC, useCallback } from "react";
-import { FlatList, ListRenderItemInfo, Modal, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, ListRenderItemInfo, Modal, Text, TouchableOpacity, View, Button } from "react-native";
 import { Device } from "react-native-ble-plx";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -63,6 +63,7 @@ export default function DeviceConnectionModal(props: devProps) {
             className="bg-blue-50 border mt-2 p-3 border-black rounded-lg"
           />
         </View>
+        <Button title="close" onPress={closeModal} />
       </SafeAreaView>
     </Modal>
   )
