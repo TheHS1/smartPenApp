@@ -251,6 +251,7 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
           placeholder="Press >> to run all or Sync to process"
           multiline={true}
           autoCorrect={false}
+          editable={ocrData.quadBoxes && ocrData.quadBoxes.length != 0}
         />
         <Text className="text-2xl font-bold mt-10">Available Plugins</Text>
         <FlatList
