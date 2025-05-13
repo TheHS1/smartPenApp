@@ -130,7 +130,6 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
     maxBounds.miny -= padding;
     maxBounds.width += 2 * padding;
     maxBounds.height += 2 * padding;
-    console.log(maxBounds)
     return { "viewbox": maxBounds, "svgPaths": jsonAnno }
   }, [annotations]);
 
@@ -166,8 +165,13 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
           return response.json();
         })
         .then(data => {
-          console.log(data["ocr_results"]);
-          return data["ocr_results"];
+          const processData = data["ocr_results"];
+          if (processData && processData.labels) {
+            processData["labels"] = processData["labels"].map(label => {
+              return label.replace(/<\/?s>/g, '');
+            });
+          }
+          return processData;
         })
         .then(ocrResult => {
           setOcrData(ocrResult);
