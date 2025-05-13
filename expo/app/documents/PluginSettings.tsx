@@ -1,37 +1,27 @@
 import { View, Text, TouchableOpacity, SafeAreaView, FlatList, ListRenderItemInfo, ScrollView } from "react-native"
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from "expo-router";
-import { FC, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlugInfo } from "@/plugins/PluginManager";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import plugArray from "@/plugins/index";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Settings, useSettings } from "@/components/SettingsContent";
 
 const plugins: PlugInfo[] = plugArray();
 
 type devLIProps = {
   item: ListRenderItemInfo<PlugInfo>;
-  setPlugins: (bool: boolean) => void;
+  updateSetting: (key: "enabled", value: { [key: string]: boolean }) => void;
+  settings: Settings;
 }
 
-const PlugLI: FC<devLIProps> = ({ item, setPlugins }: devLIProps) => {
+const PlugLI = ({ item, updateSetting, settings }: devLIProps) => {
   const [showDescription, setShowDescription] = useState<boolean>(false);
   const descriptionHeight = useSharedValue<number>(0);
-  const [enabled, setEnabled] = useState<boolean>(item.item.enabled);
   const [showSettings, setShowSettings] = useState<boolean>();
 
-  // Save plugin settings to file once they are updated
-  useEffect(() => {
-    const saveFile = async () => {
-      try {
-        // await AsyncStorage.setItem('files', JSON.stringify(Array.from(documents.entries())));
-      } catch (err) {
-        console.warn(err);
-      }
-    }
-    saveFile();
-  }, [enabled])
+  const isEnabled = settings.enabled[item.item.title] ?? false; // Get current state, default to false
 
   // Update height based on whether the description is shown or not
   if (showDescription) {
@@ -47,12 +37,6 @@ const PlugLI: FC<devLIProps> = ({ item, setPlugins }: devLIProps) => {
       overflow: 'hidden',
     };
   });
-
-  const toggleEnabled = () => {
-    setEnabled(!enabled);
-    item.item.enabled = !item.item.enabled;
-    setShowSettings(false);
-  }
 
   const toggleSettingsView = () => {
     if (!item.item.Func) return; // Only toggle if settings component exists
@@ -78,9 +62,9 @@ const PlugLI: FC<devLIProps> = ({ item, setPlugins }: devLIProps) => {
         )}
         <TouchableOpacity
           className="flex-initial p-1"
-          onPress={toggleEnabled}
+          onPress={() => updateSetting('enabled', { ...settings.enabled, [item.item.title]: !isEnabled })}
         >
-          <Ionicons name={enabled ? "checkmark-circle" : "close-circle-outline"} size={28} color={enabled ? "green" : "red"} />
+          <Ionicons name={isEnabled ? "checkmark-circle" : "close-circle-outline"} size={28} color={isEnabled ? "green" : "red"} />
         </TouchableOpacity>
       </View>
       <Animated.View style={animatedDescriptionStyle}>
@@ -99,7 +83,8 @@ const PlugLI: FC<devLIProps> = ({ item, setPlugins }: devLIProps) => {
 export default function PluginSettings() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const [plugSave, setPlugins] = useState<boolean>(false);
+  const { settings, updateSetting } = useSettings();
+
 
   // Show bar in profile page
   useEffect(() => {
@@ -113,11 +98,12 @@ export default function PluginSettings() {
       return (
         <PlugLI
           item={item}
-          setPlugins={setPlugins}
+          updateSetting={updateSetting}
+          settings={settings}
         />
       );
     },
-    []
+    [settings]
   );
 
   return (

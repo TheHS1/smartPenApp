@@ -1,16 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { ComponentType, useEffect, useMemo } from "react";
-import { FC, useCallback, useState } from "react";
+import React, { ComponentType, useMemo } from "react";
+import { useCallback, useState } from "react";
 import { FlatList, ListRenderItemInfo, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import plugArray from "@/plugins/index";
-import { annotation, page, pathInfo, textInfo } from "@/types";
+import { page, pathInfo, textInfo } from "@/types";
 import { SkRect, Skia } from "@shopify/react-native-skia";
+import { useSettings } from "@/components/SettingsContent";
 
 export interface PlugInfo {
   title: string;
   description: string;
-  enabled: boolean;
   Func: ComponentType<{ data: {} }>;
   dependencies?: string[];
 }
@@ -28,7 +28,7 @@ type devLIProps = {
 
 const plugins: PlugInfo[] = plugArray();
 
-const PlugLI: FC<devLIProps> = ({ item, data }: devLIProps) => {
+const PlugLI = ({ item, data }: devLIProps) => {
 
   return (
     <View
@@ -59,6 +59,7 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
   const [ocrEdited, setOcrEdited] = useState<boolean>(false);
   const insets = useSafeAreaInsets();
   const padding = 500;
+  const { settings } = useSettings();
 
   const jsonAnnotations = useMemo(() => {
     let maxBounds = { minx: 0, miny: 0, width: 0, height: 0 };
@@ -180,13 +181,18 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
   const renderListItem = useCallback(
     (item: ListRenderItemInfo<PlugInfo>) => {
       return (
-        <PlugLI
-          item={item}
-          data={plugData}
-        />
+        <View>
+          {
+            settings.enabled[item.item.title] == true &&
+            <PlugLI
+              item={item}
+              data={plugData}
+            />
+          }
+        </View>
       );
     },
-    [plugData]
+    [plugData, settings]
   );
 
   return (
@@ -251,6 +257,8 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
           data={plugins}
           renderItem={renderListItem}
           className="flex-1"
+          keyExtractor={(item) => item.title}
+          extraData={settings}
         />
       </View>
     </Modal>

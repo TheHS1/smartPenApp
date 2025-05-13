@@ -8,9 +8,6 @@ export default function SentimentPlugin(): PlugInfo {
   const description = "This plugin provides a report of the sentiment of the user's writing back to the user"
   const dependencies = ["ocr"];
 
-  // TODO: This value needs to be loaded from state instead
-  const enabled = true;
-
   interface FuncProps {
     data: {};
   }
@@ -89,7 +86,6 @@ export default function SentimentPlugin(): PlugInfo {
   return {
     title,
     description,
-    enabled,
     Func,
     dependencies
   }

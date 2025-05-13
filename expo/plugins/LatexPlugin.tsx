@@ -11,9 +11,6 @@ export default function LatexPlugin(): PlugInfo {
   const description = "This plugin converts the text that was written by hand into latex code by expanding snippets and then providing a PDF file to to the user. Please check the documentation for more information";
   const dependencies = ["ocr", "svgData"];
 
-  // TODO: This value needs to be loaded from state instead
-  const enabled = true;
-
   interface FuncProps {
     data: {};
   }
@@ -124,7 +121,6 @@ export default function LatexPlugin(): PlugInfo {
   return {
     title,
     description,
-    enabled,
     Func,
     dependencies
   }
