@@ -30,7 +30,7 @@ export default function SentimentPlugin(): PlugInfo {
       }
 
       setLoading(true);
-      fetch("http://192.168.1.220:5000/sentiment_plugin", {
+      fetch(`${process.env.EXPO_PUBLIC_SERVER_URL}/sentiment_plugin`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'

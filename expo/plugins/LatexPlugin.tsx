@@ -34,7 +34,7 @@ export default function LatexPlugin(): PlugInfo {
       }
 
       setLoading(true);
-      fetch("http://192.168.1.220:5000/latex_plugin", {
+      fetch(`${process.env.EXPO_PUBLIC_SERVER_URL}/latex_plugin`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'

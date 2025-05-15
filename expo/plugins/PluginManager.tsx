@@ -154,7 +154,7 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
   const getData = async () => {
     // Make server request
     try {
-      fetch("http://192.168.1.220:5000/process_svg", {
+      fetch(`${process.env.EXPO_PUBLIC_SERVER_URL}/process_svg`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
