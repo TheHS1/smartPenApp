@@ -13,24 +13,46 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import React from "react";
-import * as Google from "expo-auth-session/providers/google";
+import {
+  GoogleSignin,
+  statusCodes,
+  User,
+  isSuccessResponse,
+  isErrorWithCode
+} from '@react-native-google-signin/google-signin';
+
+GoogleSignin.configure();
 
 export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: '644162907815-3li2f65mn8qu3s64re57qolr7uah6vsa.apps.googleusercontent.com',
-  });
+  const [userInfo, setUserInfo] = useState<{ userInfo: User } | null>();
 
-  useEffect(() => {
-    if (response?.type === "success") {
-      const { authentication } = response;
-      // You can now fetch user info using the accessToken if needed
-      router.navigate("/documents");
+  const signIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      if (isSuccessResponse(response)) {
+        setUserInfo({ userInfo: response.data });
+      } else {
+        // sign in was cancelled by user
+      }
+    } catch (error) {
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.IN_PROGRESS:
+            // operation (eg. sign in) already in progress
+            break;
+          default:
+          // some other error happened
+        }
+      } else {
+        // an error that's not related to google sign in occurred
+      }
     }
-  }, [response]);
+  }
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -43,7 +65,7 @@ export default function Login() {
     try {
       // Placeholder for authentication logic (replace with actual API call)
       const isAuthenticated = username === "intellisync" && password === "Universe123"; // Replace with real authentication logic
-      if (isAuthenticated) {
+      if (isAuthenticated || userInfo != null) {
         router.navigate("/documents");
       } else {
         Alert.alert("Login Failed", "Invalid username or password.");
@@ -104,8 +126,7 @@ export default function Login() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                disabled={!request}
-                onPress={() => promptAsync()}
+                onPress={() => signIn()}
                 className="p-1 pl-2 rounded-lg mt-2 flex items-center justify-center flex-initial"
               >
                 <Image
