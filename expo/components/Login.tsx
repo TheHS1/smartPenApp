@@ -36,6 +36,7 @@ export default function Login() {
       const response = await GoogleSignin.signIn();
       if (isSuccessResponse(response)) {
         setUserInfo({ userInfo: response.data });
+        router.navigate("/documents");
       } else {
         // sign in was cancelled by user
       }
