@@ -14,14 +14,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import React from "react";
 import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
 
 export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [request, response, promptAsync] = Google.useAuthRequest({ 
+  const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: '644162907815-3li2f65mn8qu3s64re57qolr7uah6vsa.apps.googleusercontent.com',
   });
 
@@ -95,23 +94,27 @@ export default function Login() {
               secureTextEntry
             />
 
-            <TouchableOpacity
-              onPress={handleLogin}
-              className="bg-blue-500 py-3 rounded-lg mt-2"
-            >
-              <Text className="text-white text-center text-base font-semibold">
-                Login
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              disabled={!request}
-              onPress={() => promptAsync()}
-              className="bg-red-500 py-3 rounded-lg mt-4"
-            >   
-              <Text className="text-white text-center text-base font-semibold">
-                Sign in with Google
-              </Text>
-            </TouchableOpacity>
+            <View className="flex flex-row">
+              <TouchableOpacity
+                onPress={handleLogin}
+                className="bg-blue-500 py-3 rounded-lg mt-2 flex-1"
+              >
+                <Text className="text-white text-center text-base font-semibold">
+                  Login
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={!request}
+                onPress={() => promptAsync()}
+                className="p-1 pl-2 rounded-lg mt-2 flex items-center justify-center flex-initial"
+              >
+                <Image
+                  source={require("@/assets/images/google.png")}
+                  resizeMode="contain"
+                  className="w-12 h-12"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </ImageBackground>
