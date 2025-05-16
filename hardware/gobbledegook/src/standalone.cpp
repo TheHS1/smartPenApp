@@ -135,8 +135,6 @@
 #include <wiringPi.h>
 #include <wiringSerial.h>
 
-#include "FPSCounter.h"
-
 using namespace cv;
 using namespace std;
 
@@ -185,7 +183,7 @@ struct FlowData {
 vector<Scalar> colors;
 Mat old_frame, old_gray;
 std::mutex posMutex; // protects message
-Point2f pos(DIM.height / (float)2, DIM.width / (float)2);
+Point2f pos(150, 30);
 
 // Make assumption that resolution of video input does not change
 const Range leftRange = Range(0, DIM.height * 0.5);
@@ -196,16 +194,12 @@ FlowData flowData[3];
 
 // IMU vars
 int imu_fd;
-const unsigned char command_bytes[] = {0xAA, 0x01, 0x1A, 0x06};
+const unsigned char command_bytes[] = {0xAA, 0x01, 0x1A, 0x02};
 const unsigned char read_ndof[] = {0xAA, 0x01, 0x3D, 0x01};
 const size_t command_len = sizeof(command_bytes);
 int16_t initialYaw = 0.0;
-int16_t initialRoll = 0.0;
-int16_t initialPitch = 0.0;
 
 int16_t eulerX = 0;
-int16_t eulerY = 0;
-int16_t eulerZ = 0;
 
 // Create thread pool with 3 threads
 ctpl::thread_pool p(3);
@@ -328,8 +322,8 @@ int dataSetter(const char *pName, const void *pData) {
   if (strName == "svg/string") {
     printf("Resetting position\n");
     const lock_guard<mutex> lock(posMutex);
-    pos.x = 0;
-    pos.y = 0;
+    pos.x = 150;
+    pos.y = 30;
     // nextSend = static_cast<const char *>(pData);
     // LogDebug((std::string("Server data: text string set to '") + nextSend +
     // "'").c_str());
@@ -396,9 +390,9 @@ void flow(int id, FlowData *flowData) {
 static shared_ptr<libcamera::Camera> camera;
 string message = "";
 std::mutex messMutex; // protects message
-int first = 0;
+int firstFrame = 0;
 int prevState = 1;
-FPSCounter fpsCounter;
+int firstTouch = 0;
 
 static void requestComplete(libcamera::Request *request) {
   if (request->status() == libcamera::Request::RequestCancelled)
@@ -418,7 +412,14 @@ static void requestComplete(libcamera::Request *request) {
                                     PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
     Mat image(cfg.size.height, cfg.size.width, CV_8UC3, ptr, cfg.stride);
 
-    if (first == 0) {
+    if (firstTouch == 0) {
+      int state = gpioRead(4);
+      if (state == 1 && prevState == 0) {
+        message += "M";
+        firstTouch = 1;
+      }
+      prevState = state;
+    } else if (firstFrame == 0) {
       colors.push_back(Scalar(0, 0, 255));
       colors.push_back(Scalar(0, 255, 0));
       colors.push_back(Scalar(255, 0, 0));
@@ -436,7 +437,7 @@ static void requestComplete(libcamera::Request *request) {
         KeyPoint::convert(keypoints, flowData[i].p0);
       }
 
-      first = 1;
+      firstFrame = 1;
 
       // ask for euler data
       for (size_t i = 0; i < command_len; ++i) {
@@ -453,27 +454,22 @@ static void requestComplete(libcamera::Request *request) {
         }
       } else {
         int numBytes = serialGetchar(imu_fd);
-        if (numBytes != 0x06) {
+        if (numBytes != 0x02) {
           fprintf(stderr,
                   "Wrong number of bytes returned. Expected 6 got %i \n",
                   numBytes);
           continue;
         }
 
-        uint8_t eulerBuffer[6];
-        for (int i = 0; i < 6; i++) {
+        uint8_t eulerBuffer[2];
+        for (int i = 0; i < 2; i++) {
           eulerBuffer[i] = serialGetchar(imu_fd);
-          // fprintf(stdout, "Received Byte: %02X\n", eulerBuffer[i]);
         }
 
         eulerX = (eulerBuffer[0] | (eulerBuffer[1] << 8)) / 16;
-        eulerY = (eulerBuffer[2] | (eulerBuffer[3] << 8)) / 16;
-        eulerZ = (eulerBuffer[4] | (eulerBuffer[5] << 8)) / 16;
       }
 
       initialYaw = eulerX;
-      initialRoll = eulerY;
-      initialPitch = eulerZ;
     } else {
       Mat frame_gray;
       cvtColor(image, frame_gray, COLOR_BGR2GRAY);
@@ -501,34 +497,25 @@ static void requestComplete(libcamera::Request *request) {
         }
       } else {
         int numBytes = serialGetchar(imu_fd);
-        if (numBytes != 0x06) {
+        if (numBytes != 0x02) {
           fprintf(stderr,
                   "Wrong number of bytes returned. Expected 6 got %i \n",
                   numBytes);
           continue;
         }
 
-        uint8_t eulerBuffer[6];
-        for (int i = 0; i < 6; i++) {
+        uint8_t eulerBuffer[2];
+        for (int i = 0; i < 2; i++) {
           eulerBuffer[i] = serialGetchar(imu_fd);
-          // fprintf(stdout, "Received Byte: %02X\n", eulerBuffer[i]);
         }
 
         eulerX = (eulerBuffer[0] | (eulerBuffer[1] << 8)) / 16;
-        eulerY = (eulerBuffer[2] | (eulerBuffer[3] << 8)) / 16;
-        eulerZ = (eulerBuffer[4] | (eulerBuffer[5] << 8)) / 16;
       }
 
       double yaw_angle_radians = (eulerX - initialYaw) * M_PI / 180.0;
-      double roll_angle_radians = (eulerY - initialRoll) * M_PI / 180.0;
-      double pitch_angle_radians = (eulerZ - initialPitch) * M_PI / 180.0;
 
       double cos_yaw = std::cos(yaw_angle_radians);
       double sin_yaw = std::sin(yaw_angle_radians);
-      double cos_pitch = std::cos(pitch_angle_radians);
-      double sin_pitch = std::sin(pitch_angle_radians);
-      double cos_roll = std::cos(-roll_angle_radians);
-      double sin_roll = std::sin(-roll_angle_radians);
 
       results[0].get();
       results[1].get();
@@ -541,33 +528,10 @@ static void requestComplete(libcamera::Request *request) {
       avg.x /= 3;
       avg.y /= 3;
 
-      // cout << "AVG X: " << avg.x << endl;
-      // cout << "AVG Y: " << avg.y << endl;
       double originalAvgX = avg.x;
       double originalAvgY = avg.y;
-      double originalAvgZ = 0;
 
-      double xRotated, yRotated, zRotated;
-
-      // Apply roll correction
-      /*
-         xRotated = originalAvgX;
-         yRotated = originalAvgY * cos_roll;
-         zRotated = originalAvgY * sin_roll;
-         originalAvgX = xRotated;
-         originalAvgY = yRotated;
-         originalAvgZ = zRotated;
-         */
-
-      // Apply pitch correction
-      /*
-         xRotated = originalAvgX * cos_pitch + originalAvgZ * sin_pitch;
-         yRotated = originalAvgY;
-         zRotated = -originalAvgX * sin_pitch + originalAvgZ * cos_pitch;
-         originalAvgX = xRotated;
-         originalAvgY = yRotated;
-         originalAvgZ = zRotated;
-         */
+      double xRotated, yRotated;
 
       // Apply yaw correction
       xRotated = originalAvgX * cos_yaw - originalAvgY * sin_yaw;
@@ -576,9 +540,6 @@ static void requestComplete(libcamera::Request *request) {
       // Save to average variables
       avg.x = xRotated;
       avg.y = yRotated;
-
-      // cout << "ADJUSTED X: " << avg.x << endl;
-      // cout << "ADJUSTED Y: " << avg.y << endl;
 
       const lock_guard<mutex> lock(posMutex);
       Point2f newPos = pos - avg;
@@ -600,10 +561,6 @@ static void requestComplete(libcamera::Request *request) {
       flowData[0].old_gray = Mat(old_gray, rightRange, bottomRange);
       flowData[1].old_gray = Mat(old_gray, leftRange, bottomRange);
       flowData[2].old_gray = Mat(old_gray, rightRange, topRange);
-      // auto stop = chrono::high_resolution_clock::now();
-      // auto duration = chrono::duration_cast<chrono::milliseconds>(stop -
-      // start); cout << duration.count() << endl;
-      fpsCounter.update();
     }
   }
   /* Re-queue the Request to the camera. */
@@ -795,10 +752,13 @@ int main(int argc, char **ppArgv) {
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
     if (message.length() >= 20) {
       const lock_guard<mutex> lock(messMutex);
-      nextSend = message.substr(0, 20);
-      message.erase(0, 20);
+      // sending last space instead of 20 characters because it simplifies
+      // application logic
+      int lastSpace = message.rfind(
+          ' ', std::min(static_cast<size_t>(20), message.length()));
+      nextSend = message.substr(0, lastSpace);
+      message.erase(0, lastSpace);
       ggkNofifyUpdatedCharacteristic("/com/gobbledegook/svg/string");
-      // cout << message << endl;
     }
   }
 
