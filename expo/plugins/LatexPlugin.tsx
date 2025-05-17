@@ -11,9 +11,6 @@ export default function LatexPlugin(): PlugInfo {
   const description = "This plugin converts the text that was written by hand into latex code by expanding snippets and then providing a PDF file to to the user. Please check the documentation for more information";
   const dependencies = ["ocr", "svgData"];
 
-  // TODO: This value needs to be loaded from state instead
-  const enabled = true;
-
   interface FuncProps {
     data: {};
   }
@@ -37,7 +34,7 @@ export default function LatexPlugin(): PlugInfo {
       }
 
       setLoading(true);
-      fetch("http://192.168.1.220:5000/latex_plugin", {
+      fetch(`${process.env.EXPO_PUBLIC_SERVER_URL}/latex_plugin`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'
@@ -124,7 +121,6 @@ export default function LatexPlugin(): PlugInfo {
   return {
     title,
     description,
-    enabled,
     Func,
     dependencies
   }

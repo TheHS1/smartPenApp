@@ -8,9 +8,6 @@ export default function SentimentPlugin(): PlugInfo {
   const description = "This plugin provides a report of the sentiment of the user's writing back to the user"
   const dependencies = ["ocr"];
 
-  // TODO: This value needs to be loaded from state instead
-  const enabled = true;
-
   interface FuncProps {
     data: {};
   }
@@ -33,7 +30,7 @@ export default function SentimentPlugin(): PlugInfo {
       }
 
       setLoading(true);
-      fetch("http://192.168.1.220:5000/sentiment_plugin", {
+      fetch(`${process.env.EXPO_PUBLIC_SERVER_URL}/sentiment_plugin`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'
@@ -89,7 +86,6 @@ export default function SentimentPlugin(): PlugInfo {
   return {
     title,
     description,
-    enabled,
     Func,
     dependencies
   }

@@ -1,16 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { ComponentType, useEffect, useMemo } from "react";
-import { FC, useCallback, useState } from "react";
+import React, { ComponentType, useMemo } from "react";
+import { useCallback, useState } from "react";
 import { FlatList, ListRenderItemInfo, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import plugArray from "@/plugins/index";
-import { annotation, page, pathInfo, textInfo } from "@/types";
+import { page, pathInfo, textInfo } from "@/types";
 import { SkRect, Skia } from "@shopify/react-native-skia";
+import { useSettings } from "@/components/SettingsContent";
 
 export interface PlugInfo {
   title: string;
   description: string;
-  enabled: boolean;
   Func: ComponentType<{ data: {} }>;
   dependencies?: string[];
 }
@@ -28,7 +28,7 @@ type devLIProps = {
 
 const plugins: PlugInfo[] = plugArray();
 
-const PlugLI: FC<devLIProps> = ({ item, data }: devLIProps) => {
+const PlugLI = ({ item, data }: devLIProps) => {
 
   return (
     <View
@@ -59,6 +59,7 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
   const [ocrEdited, setOcrEdited] = useState<boolean>(false);
   const insets = useSafeAreaInsets();
   const padding = 500;
+  const { settings } = useSettings();
 
   const jsonAnnotations = useMemo(() => {
     let maxBounds = { minx: 0, miny: 0, width: 0, height: 0 };
@@ -129,7 +130,6 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
     maxBounds.miny -= padding;
     maxBounds.width += 2 * padding;
     maxBounds.height += 2 * padding;
-    console.log(maxBounds)
     return { "viewbox": maxBounds, "svgPaths": jsonAnno }
   }, [annotations]);
 
@@ -154,7 +154,7 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
   const getData = async () => {
     // Make server request
     try {
-      fetch("http://192.168.1.220:5000/process_svg", {
+      fetch(`${process.env.EXPO_PUBLIC_SERVER_URL}/process_svg`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
@@ -165,8 +165,13 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
           return response.json();
         })
         .then(data => {
-          console.log(data["ocr_results"]);
-          return data["ocr_results"];
+          const processData = data["ocr_results"];
+          if (processData && processData.labels) {
+            processData["labels"] = processData["labels"].map(label => {
+              return label.replace(/<\/?s>/g, '');
+            });
+          }
+          return processData;
         })
         .then(ocrResult => {
           setOcrData(ocrResult);
@@ -180,13 +185,18 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
   const renderListItem = useCallback(
     (item: ListRenderItemInfo<PlugInfo>) => {
       return (
-        <PlugLI
-          item={item}
-          data={plugData}
-        />
+        <View>
+          {
+            settings.enabled[item.item.title] == true &&
+            <PlugLI
+              item={item}
+              data={plugData}
+            />
+          }
+        </View>
       );
     },
-    [plugData]
+    [plugData, settings]
   );
 
   return (
@@ -245,12 +255,15 @@ export default function PluginManager({ visible, closeModal, annotations }: Plug
           placeholder="Press >> to run all or Sync to process"
           multiline={true}
           autoCorrect={false}
+          editable={ocrData.quadBoxes && ocrData.quadBoxes.length != 0}
         />
         <Text className="text-2xl font-bold mt-10">Available Plugins</Text>
         <FlatList
           data={plugins}
           renderItem={renderListItem}
           className="flex-1"
+          keyExtractor={(item) => item.title}
+          extraData={settings}
         />
       </View>
     </Modal>

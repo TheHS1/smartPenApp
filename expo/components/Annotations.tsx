@@ -351,8 +351,8 @@ export default function Annotations({ penData, annotations, saveAnnotations, set
         // Use bounding rectangle to check if user tapping path
         const tapX = (evt.x - translateX.value) / scale.value;
         const tapY = (evt.y - translateY.value) / scale.value;
-        const xBounds = tapX >= bounds.x && tapX <= bounds.x + bounds.width;
-        const yBounds = tapY >= bounds.y && tapY <= bounds.y + bounds.height;
+        const xBounds = tapX >= bounds.x - 5 && tapX <= bounds.x + bounds.width + 5;
+        const yBounds = tapY >= bounds.y - 5 && tapY <= bounds.y + bounds.height + 5;
         if (xBounds && yBounds) {
           runOnJS(setAnnoSelected)(i);
           selectedAnno.value = i;

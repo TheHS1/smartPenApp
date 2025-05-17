@@ -40,18 +40,15 @@ export default function PagePreview({ paths }: previewProps) {
               </Text>
             )))}
         {paths.penStrokes.map((annotation: annotation, index: number) => (
-          <Text
+          <Path
             key={index}
-            fill={annotation.color}
-            stroke="none"
-            fontSize={annotation.strokeSize}
-            x={(annotation as textInfo).x}
-            y={(annotation as textInfo).y}
-            dy={(annotation as textInfo).strokeSize * 0.75} // React Native Skia assumes anchor in top left vs bottom left for react-native-svg
-            textAnchor="start"
-          >
-            {(annotation as textInfo).text}
-          </Text>
+            d={(annotation as pathInfo).path}
+            stroke={(annotation as pathInfo).erase ? 'white' : annotation.color}
+            fill={'transparent'}
+            strokeWidth={annotation.strokeSize}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
         ))}
       </Svg>
     </View>

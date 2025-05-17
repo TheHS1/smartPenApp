@@ -6,9 +6,6 @@ export default function LatexPlugin(): PlugInfo {
   const title = "Weather Plugin"
   const description = "Fetches the current weather conditions from wttr.in based on location"
 
-  // TODO: This value needs to be loaded from state instead
-  const enabled = true
-
   interface FuncProps {
     data: {};
   }
@@ -46,7 +43,6 @@ export default function LatexPlugin(): PlugInfo {
   return {
     title,
     description,
-    enabled,
     Func
   }
 }
